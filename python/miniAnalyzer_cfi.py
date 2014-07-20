@@ -1,9 +1,11 @@
 import FWCore.ParameterSet.Config as cms
 
 miniAnalyzer = cms.EDAnalyzer("MiniAnalyzer",
-                              vertices = cms.InputTag("offlineSlimmedPrimaryVertices"),
-                              muons = cms.InputTag("slimmedMuons"),
-                              electrons = cms.InputTag("slimmedElectrons"),
-                              jets = cms.InputTag("slimmedJets"),
-                              mets = cms.InputTag("slimmedMETs")
+                              triggerBits = cms.InputTag("TriggerResults","","HLT"),
+                              rho         = cms.InputTag("fixedGridRhoFastjetAll"),
+                              vertices    = cms.InputTag("offlineSlimmedPrimaryVertices"),
+                              muons       = cms.InputTag("slimmedMuons"),
+                              electrons   = cms.InputTag("slimmedElectrons"),
+                              jets        = cms.InputTag("slimmedJets"),
+                              mets        = cms.InputTag("slimmedMETs")
                               )

@@ -83,6 +83,7 @@ private:
       
   edm::EDGetTokenT<edm::TriggerResults> triggerBits_;
   edm::EDGetTokenT<reco::VertexCollection> vtxToken_;
+  edm::EDGetTokenT<double> rhoToken_;
   edm::EDGetTokenT<pat::MuonCollection> muonToken_;
   edm::EDGetTokenT<pat::ElectronCollection> electronToken_;
   edm::EDGetTokenT<pat::JetCollection> jetToken_;
@@ -112,8 +113,9 @@ private:
 // constructors and destructor
 //
 MiniAnalyzer::MiniAnalyzer(const edm::ParameterSet& iConfig) :
-  triggerBits_(consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag>("bits"))),
+  triggerBits_(consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag>("triggerBits"))),
   vtxToken_(consumes<reco::VertexCollection>(iConfig.getParameter<edm::InputTag>("vertices"))),
+  rhoToken_(consumes<double>(iConfig.getParameter<edm::InputTag>("rho"))),
   muonToken_(consumes<pat::MuonCollection>(iConfig.getParameter<edm::InputTag>("muons"))),
   electronToken_(consumes<pat::ElectronCollection>(iConfig.getParameter<edm::InputTag>("electrons"))),
   jetToken_(consumes<pat::JetCollection>(iConfig.getParameter<edm::InputTag>("jets"))),
@@ -163,9 +165,9 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.getByToken(vtxToken_, vertices);
   if (vertices->empty()) return; // skip the event if no PV found
   const reco::Vertex &primVtx = vertices->front();
-
+  
   edm::Handle< double > rhoH;
-  iEvent.getByLabel(edm::InputTag("kt6PFJets:rho"),rhoH);
+  iEvent.getByToken(rhoToken_,rhoH);
   float rho=*rhoH;
 		    
   histContainer_["cutflow"]->Fill(0);
@@ -192,9 +194,9 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	&& (mu.chargedHadronIso()+max(0.,mu.neutralHadronIso()+mu.photonIso()-0.50*mu.puChargedHadronIso()))/mu.pt() < 0.12 )
       {
 	
-	if( abs(mu.eta()) < 2.1 ) histContainer_["muonpt"]->Fill(mu.pt()); //N-1 plot
+	if( fabs(mu.eta()) < 2.1 ) histContainer_["muonpt"]->Fill(mu.pt()); //N-1 plot
 	if( mu.pt() > 20 )        histContainer_["muoneta"]->Fill(fabs(mu.eta()));
-	if( mu.pt() > 20 && abs(mu.eta()) < 2.1 )
+	if( mu.pt() > 20 && fabs(mu.eta()) < 2.1 )
 	  {
 	    selectedMuons.push_back( &mu );
 	    mupt = mu.pt();
@@ -233,15 +235,15 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 						  rho) );
     
     if( passVetoId 
-	&& abs(el.superCluster()->eta()) > 1.4442 && abs(el.superCluster()->eta()) < 1.5660 
+	&& fabs(el.superCluster()->eta()) > 1.4442 && fabs(el.superCluster()->eta()) < 1.5660 
 	&& el.gsfTrack()->trackerExpectedHitsInner().numberOfHits() <= 0 
 	&& el.dB() < 0.02 
 	&& el.passConversionVeto() == true 
 	&& (el.chargedHadronIso()+max(0.,el.neutralHadronIso()+el.photonIso()-0.50*el.puChargedHadronIso()))/el.pt() < 0.1 )
       {
-	if(abs(el.eta()) < 2.5) histContainer_["electronpt"]->Fill(el.pt());    //N-1 plot
+	if(fabs(el.eta()) < 2.5) histContainer_["electronpt"]->Fill(el.pt());    //N-1 plot
 	if(el.pt() > 20)        histContainer_["electroneta"]->Fill(fabs(el.eta()));  //N-1 plot
-	if(el.pt() > 20 && abs(el.eta()) < 2.5)
+	if(el.pt() > 20 && fabs(el.eta()) < 2.5)
 	  {
 	    selectedElectrons.push_back(&el);
 	  }
@@ -268,21 +270,21 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     if ( j.numberOfDaughters() > 1 
 	 && (j.neutralHadronEnergy() + j.HFHadronEnergy())/rawEnergy < 0.99 
 	 && j.neutralEmEnergyFraction() < 0.99 
-	 && (j.chargedEmEnergyFraction() < 0.99 || abs(j.eta()) >= 2.4)
-	 && (j.chargedHadronEnergyFraction() > 0. || abs(j.eta()) >= 2.4) 
-	 && (j.chargedMultiplicity() > 0 || abs(j.eta()) >= 2.4)
+	 && (j.chargedEmEnergyFraction() < 0.99 || fabs(j.eta()) >= 2.4)
+	 && (j.chargedHadronEnergyFraction() > 0. || fabs(j.eta()) >= 2.4) 
+	 && (j.chargedMultiplicity() > 0 || fabs(j.eta()) >= 2.4)
 	 && dR2muon>0.5)
       {
-	if(abs(j.eta()) < 2.5) histContainer_["jetpt"]->Fill(j.pt());    //N-1 plots
+	if(fabs(j.eta()) < 2.5) histContainer_["jetpt"]->Fill(j.pt());    //N-1 plots
 	if(j.pt() > 30)        histContainer_["jeteta"]->Fill(fabs(j.eta())); 
-	if( abs(j.eta()) < 2.5 && j.pt() > 30)
+	if( fabs(j.eta()) < 2.5 && j.pt() > 30)
 	  {
 	    selectedJets.push_back( &j );
 	    float csv=j.bDiscriminator("combinedSecondaryVertexBJetTags");
 	    if(csv>0.679) nCSVMtags++;
 	    histContainer_["jetcsv"]->Fill(csv);
 	    histContainer_["jetpileupid"]->Fill(j.userFloat("pileupJetId:fullDiscriminant"));
-	    float svtxmass=j.userFloat("secvtxMass");
+	    float svtxmass=j.userFloat("vtxMass");
 	    histContainer_["jetsecvtxmass"]->Fill(svtxmass);
 	  }
       }
@@ -361,8 +363,8 @@ MiniAnalyzer::beginJob()
   histContainer_["nrecojets"]      = fs->make<TH1F>("nrecojets",   ";#reconstructed jets;Events", 50, 0., 50.);
   histContainer_["jetpt"]          = fs->make<TH1F>("jetpt",       ";Transverse momentum [GeV];# jets", 100, 0., 300.);
   histContainer_["jeteta"]         = fs->make<TH1F>("jeteta",      ";Pseudo-rapidity;# jets", 100, 0., 3.);
-  histContainer_["jetcsv"]         = fs->make<TH1F>("jetcsv",      ";Combined secondary vertes;# jets", 100, -3., 1.2);
-  histContainer_["jetpileupid"]    = fs->make<TH1F>("jetpileupid", ";Pileup jet id;#jets", 100, -3., 3.);
+  histContainer_["jetcsv"]         = fs->make<TH1F>("jetcsv",      ";Combined secondary vertes;# jets", 100, -1.2, 1.2);
+  histContainer_["jetpileupid"]    = fs->make<TH1F>("jetpileupid", ";Pileup jet id;#jets", 100, -1.2, 1.2);
   histContainer_["jetsecvtxmass"]  = fs->make<TH1F>("jetvtxMass", ";Secondary vertex mass [GeV];#jets", 100, 0., 6.);
   histContainer_["nseljets"]       = fs->make<TH1F>("nseljets",    ";#selected jets;Events", 6, 3., 10.);
   histContainer_["ncsvmjets"]      = fs->make<TH1F>("ncsvmjets",    ";b-tagged jets (CSVM);Events", 10, 0., 10.);
