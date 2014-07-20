@@ -195,8 +195,8 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       {
 	
 	if( fabs(mu.eta()) < 2.1 ) histContainer_["muonpt"]->Fill(mu.pt()); //N-1 plot
-	if( mu.pt() > 20 )        histContainer_["muoneta"]->Fill(fabs(mu.eta()));
-	if( mu.pt() > 20 && fabs(mu.eta()) < 2.1 )
+	if( mu.pt() > 26 )        histContainer_["muoneta"]->Fill(fabs(mu.eta()));
+	if( mu.pt() > 26 && fabs(mu.eta()) < 2.1 )
 	  {
 	    selectedMuons.push_back( &mu );
 	    mupt = mu.pt();
