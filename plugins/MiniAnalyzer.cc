@@ -39,9 +39,9 @@
 #include "EgammaAnalysis/ElectronTools/interface/EGammaCutBasedEleId.h"
 
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
- 
-#include <TTree.h>
-#include <TClonesArray.h>
+
+#include "UserCode/TopAnalysis/interface/MiniEvent.h"
+
 #include "TH1.h"
 #include "TH1F.h"
 #include "TH2F.h"
@@ -94,10 +94,8 @@ private:
   std::unordered_map<std::string,TH1F*> histContainer_;
   std::unordered_map<std::string,TH2F*> histContainer2d_; 
 
-  //TH1F* fHistnew_Histo;
-
-  bool muon_selection, electron_veto, jet_selection;
-
+  TTree *tree_;
+  MiniEvent_t ev_;
 };
 
 //
@@ -143,11 +141,10 @@ MiniAnalyzer::~MiniAnalyzer()
 void
 MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
-  //   using namespace edm;
-
-  muon_selection = false;
-  electron_veto = false;
-  jet_selection = false; 
+  //  bool isData = iEvent.isRealData();
+  ev_.run     = iEvent.id().run();
+  ev_.lumi    = iEvent.luminosityBlock();
+  ev_.event   = iEvent.id().event();
 
   edm::Handle<edm::TriggerResults> triggerBits;
   iEvent.getByToken(triggerBits_, triggerBits);
@@ -165,11 +162,13 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.getByToken(vtxToken_, vertices);
   if (vertices->empty()) return; // skip the event if no PV found
   const reco::Vertex &primVtx = vertices->front();
+  ev_.nvtx=vertices->size();
   
   edm::Handle< double > rhoH;
   iEvent.getByToken(rhoToken_,rhoH);
   float rho=*rhoH;
-		    
+  ev_.rho=rho;
+	    
   histContainer_["cutflow"]->Fill(0);
 
 
@@ -201,6 +200,13 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	    selectedMuons.push_back( &mu );
 	    mupt = mu.pt();
 	    muphi = mu.phi();
+	    
+	    //save the selected lepton
+	    ev_.l_id=13;
+	    ev_.l_charge=mu.charge();
+	    ev_.l_pt=mu.pt();
+	    ev_.l_eta=mu.eta();
+	    ev_.l_phi=mu.phi();
 	  }
       }
   }
@@ -263,6 +269,7 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.getByToken(jetToken_, jets);
   std::vector<const pat::Jet *> selectedJets;
   histContainer_["nrecojets"]->Fill(jets->size());
+  ev_.nj=0;
   for (const pat::Jet &j : *jets) {
 	  
     float dR2muon=deltaR(j,*(selectedMuons[0]));
@@ -286,6 +293,14 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	    histContainer_["jetpileupid"]->Fill(j.userFloat("pileupJetId:fullDiscriminant"));
 	    float svtxmass=j.userFloat("vtxMass");
 	    histContainer_["jetsecvtxmass"]->Fill(svtxmass);
+
+	    ev_.j_pt[ev_.nj]=j.pt();
+	    ev_.j_eta[ev_.nj]=j.eta();
+	    ev_.j_phi[ev_.nj]=j.phi();
+	    ev_.j_csv[ev_.nj]=csv;
+	    ev_.j_vtxmass[ev_.nj]=svtxmass;
+	    ev_.nj++;
+
 	  }
       }
   }
@@ -301,6 +316,11 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   float dphi_met_mu = deltaPhi(muphi, metphi); // use the function to restrict to the 0,pi range
   float mt=sqrt(2*mupt*metpt*(1-cos(dphi_met_mu)));
 
+  //save to ttree
+  ev_.met_pt=metpt;
+  ev_.met_phi=metphi;
+  ev_.mt=mt;
+
   //
   // FINAL SELECTION PLOTS
   //
@@ -308,6 +328,7 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     {
       histContainer_["cutflow"]->Fill(3);
       histContainer_["mt_3"]->Fill(mt);
+      tree_->Fill();
     }
   if(selectedJets.size()>=4) 
     {
@@ -382,6 +403,10 @@ MiniAnalyzer::beginJob()
   //http://root.cern.ch/root/html/TH1.html#TH1:Sumw2
   for(std::unordered_map<std::string,TH1F*>::iterator it=histContainer_.begin();   it!=histContainer_.end();   it++) it->second->Sumw2();
   for(std::unordered_map<std::string,TH2F*>::iterator it=histContainer2d_.begin(); it!=histContainer2d_.end(); it++) it->second->Sumw2();
+
+  //create a tree for the selected events
+  tree_ = fs->make<TTree>("AnaTree", "AnaTree");
+  createMiniEventTree(tree_,ev_);
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
