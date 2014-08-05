@@ -182,31 +182,38 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   histContainer_["nrecomuons"]->Fill(muons->size());
   std::vector<const pat::Muon *> selectedMuons;        
   for (const pat::Muon &mu : *muons) { 
+    bool passDB( mu.dB()<0.2 );
+    float relIso((mu.chargedHadronIso()+max(0.,mu.neutralHadronIso()+mu.photonIso()-0.50*mu.puChargedHadronIso()))/mu.pt());
+    bool passIso( relIso<0.12 );
+    bool passEta(fabs(mu.eta()) < 2.1 );
+    bool passPt( mu.pt() > 26 );
     if( mu.isPFMuon() 
 	&& mu.isGlobalMuon() 
 	&& mu.normChi2() < 10 
 	&& mu.innerTrack()->hitPattern().trackerLayersWithMeasurement() > 5 
 	&& mu.globalTrack()->hitPattern().numberOfValidMuonHits() > 0 
-	&& mu.dB() < 0.2 
 	&& mu.innerTrack()->hitPattern().numberOfValidPixelHits() > 0 
-	&& mu.numberOfMatchedStations() > 1 
-	&& (mu.chargedHadronIso()+max(0.,mu.neutralHadronIso()+mu.photonIso()-0.50*mu.puChargedHadronIso()))/mu.pt() < 0.12 )
+	&& mu.numberOfMatchedStations() > 1 )
       {
-	
-	if( fabs(mu.eta()) < 2.1 ) histContainer_["muonpt"]->Fill(mu.pt()); //N-1 plot
-	if( mu.pt() > 26 )        histContainer_["muoneta"]->Fill(fabs(mu.eta()));
-	if( mu.pt() > 26 && fabs(mu.eta()) < 2.1 )
+	if(passDB && passPt && passEta) histContainer_["muoniso"]->Fill(relIso);
+	if(passIso && passPt && passEta) histContainer_["muondb"]->Fill(mu.dB());
+	if(passDB && passIso)
 	  {
-	    selectedMuons.push_back( &mu );
-	    mupt = mu.pt();
-	    muphi = mu.phi();
-	    
-	    //save the selected lepton
-	    ev_.l_id=13;
-	    ev_.l_charge=mu.charge();
-	    ev_.l_pt=mu.pt();
-	    ev_.l_eta=mu.eta();
-	    ev_.l_phi=mu.phi();
+	    if( passEta ) histContainer_["muonpt"]->Fill(mu.pt()); //N-1 plot
+	    if( passPt )        histContainer_["muoneta"]->Fill(fabs(mu.eta()));
+	    if( passPt && passEta )
+	      {
+		selectedMuons.push_back( &mu );
+		mupt = mu.pt();
+		muphi = mu.phi();
+		
+		//save the selected lepton
+		ev_.l_id=13;
+		ev_.l_charge=mu.charge();
+		ev_.l_pt=mu.pt();
+		ev_.l_eta=mu.eta();
+		ev_.l_phi=mu.phi();
+	      }
 	  }
       }
   }
@@ -299,6 +306,10 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	    ev_.j_phi[ev_.nj]=j.phi();
 	    ev_.j_csv[ev_.nj]=csv;
 	    ev_.j_vtxmass[ev_.nj]=svtxmass;
+	    ev_.j_puid[ev_.nj]=j.userFloat("pileupJetId:fullDiscriminant");
+	    ev_.j_flav[ev_.nj]=j.partonFlavour();
+	    const reco::Candidate *genParton = j.genParton();
+	    ev_.j_pid[ev_.nj]=genParton ? genParton->pdgId() : 0;
 	    ev_.nj++;
 
 	  }
@@ -374,6 +385,8 @@ MiniAnalyzer::beginJob()
   histContainer_["nrecomuons"]  = fs->make<TH1F>("nrecomuons",   ";# reconstructed muons; Events",             10, 0., 10.);
   histContainer_["muonpt"]      = fs->make<TH1F>("muonpt",       ";Transverse momentum [GeV];# muons",         100, 0., 300.);
   histContainer_["muoneta"]     = fs->make<TH1F>("muoneta",      ";Pseudo-rapidity;#muons ",                   100, 0, 3.);
+  histContainer_["muondb"]      = fs->make<TH1F>("muondb",       ";d_{0} [cm];# muons",         100, 0.,0.5);
+  histContainer_["muoniso"]     = fs->make<TH1F>("muoniso",      ";Relative isolation (#Delta#beta);#muons ",  100, 0, 0.5);
   histContainer_["nselmuons"]   = fs->make<TH1F>("nselmuons",    ";# reconstructed muons;Events",              5, 0.,5.);
 
   histContainer_["nrecoelectrons"]    = fs->make<TH1F>("nrecoelectrons",  ";# reconstructed electrons;Events",         5, 0., 5.);

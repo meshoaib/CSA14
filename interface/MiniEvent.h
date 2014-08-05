@@ -11,7 +11,8 @@ struct MiniEvent_t
   Float_t l_pt,l_eta,l_phi;
   Float_t rho;
   Int_t nj;
-  Float_t j_pt[1000],j_eta[1000],j_phi[1000],j_csv[1000],j_vtxmass[1000];
+  Float_t j_pt[1000],j_eta[1000],j_phi[1000],j_csv[1000],j_vtxmass[1000],j_puid[1000];
+  Int_t j_flav[1000],j_pid[1000];
   Float_t met_pt,met_phi,mt;
 };
 
