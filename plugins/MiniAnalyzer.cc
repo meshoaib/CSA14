@@ -181,12 +181,23 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.getByToken(muonToken_, muons);
   histContainer_["nrecomuons"]->Fill(muons->size());
   std::vector<const pat::Muon *> selectedMuons;        
+  double deltaBeta(0.5),deltaBetaV2(1.09);
   for (const pat::Muon &mu : *muons) { 
-    bool passDB( mu.dB()<0.2 );
-    float relIso((mu.chargedHadronIso()+max(0.,mu.neutralHadronIso()+mu.photonIso()-0.50*mu.puChargedHadronIso()))/mu.pt());
-    bool passIso( relIso<0.12 );
-    bool passEta(fabs(mu.eta()) < 2.1 );
+    
+    //kinematics
     bool passPt( mu.pt() > 26 );
+    bool passEta(fabs(mu.eta()) < 2.1 );
+
+    //distance to the PV
+    float dz(fabs( mu.vertex().z() - primVtx.z())); 
+    bool passDB( mu.dB()<0.2 && dz<0.5 );
+
+    //isolation
+    float relIso((mu.chargedHadronIso()+max(0.,mu.neutralHadronIso()+mu.photonIso()-deltaBeta*mu.puChargedHadronIso()))/mu.pt());
+    float relIsoV2((mu.chargedHadronIso()+max(0.,mu.neutralHadronIso()+mu.photonIso()-deltaBetaV2*mu.puChargedHadronIso()))/mu.pt());
+    float neutralIso(mu.neutralHadronIso()+mu.photonIso());
+    bool passIso( relIso<0.12 );
+
     if( mu.isPFMuon() 
 	&& mu.isGlobalMuon() 
 	&& mu.normChi2() < 10 
@@ -195,8 +206,22 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	&& mu.innerTrack()->hitPattern().numberOfValidPixelHits() > 0 
 	&& mu.numberOfMatchedStations() > 1 )
       {
-	if(passDB && passPt && passEta) histContainer_["muoniso"]->Fill(relIso);
-	if(passIso && passPt && passEta) histContainer_["muondb"]->Fill(mu.dB());
+	if(passDB && passPt && passEta) 
+	  {
+	    histContainer_["muoniso"]->Fill(relIso);
+	    histContainer_["muonisov2"]->Fill(relIsoV2);
+	    histContainer_["muonchiso"]->Fill(mu.chargedHadronIso());
+	    histContainer_["muonneuthadiso"]->Fill(mu.neutralHadronIso());
+	    histContainer_["muonphotoniso"]->Fill(mu.photonIso());
+	    histContainer_["muonpuchiso"]->Fill(mu.puChargedHadronIso());
+	    histContainer2d_["muonneutreliso"]->Fill(vertices->size(),neutralIso/mu.pt());
+	    histContainer2d_["muonpuchreliso"]->Fill(vertices->size(),mu.puChargedHadronIso()/mu.pt());
+	  }
+	if(passIso && passPt && passEta) 
+	  {
+	    histContainer_["muondb"]->Fill(mu.dB());
+	    histContainer_["muondz"]->Fill(dz);
+	  }
 	if(passDB && passIso)
 	  {
 	    if( passEta ) histContainer_["muonpt"]->Fill(mu.pt()); //N-1 plot
@@ -382,12 +407,20 @@ MiniAnalyzer::beginJob()
 
   histContainer_["nvertices"] = fs->make<TH1F>("nvertices",    ";# vertices;Events", 100, 0., 100.); 
 
-  histContainer_["nrecomuons"]  = fs->make<TH1F>("nrecomuons",   ";# reconstructed muons; Events",             10, 0., 10.);
-  histContainer_["muonpt"]      = fs->make<TH1F>("muonpt",       ";Transverse momentum [GeV];# muons",         100, 0., 300.);
-  histContainer_["muoneta"]     = fs->make<TH1F>("muoneta",      ";Pseudo-rapidity;#muons ",                   100, 0, 3.);
-  histContainer_["muondb"]      = fs->make<TH1F>("muondb",       ";d_{0} [cm];# muons",         100, 0.,0.5);
-  histContainer_["muoniso"]     = fs->make<TH1F>("muoniso",      ";Relative isolation (#Delta#beta);#muons ",  100, 0, 0.5);
-  histContainer_["nselmuons"]   = fs->make<TH1F>("nselmuons",    ";# reconstructed muons;Events",              5, 0.,5.);
+  histContainer_["nrecomuons"]     = fs->make<TH1F>("nrecomuons",      ";# reconstructed muons; Events",             10, 0., 10.);
+  histContainer_["muonpt"]         = fs->make<TH1F>("muonpt",          ";Transverse momentum [GeV];# muons",         100, 0., 300.);
+  histContainer_["muoneta"]        = fs->make<TH1F>("muoneta",         ";Pseudo-rapidity;#muons ",                   100, 0, 3.);
+  histContainer_["muondb"]         = fs->make<TH1F>("muondb",          ";d_{0} [cm];# muons",         100, 0.,0.3);
+  histContainer_["muondz"]         = fs->make<TH1F>("muondz",          ";|d_{z}| [cm];# muons",       100, 0.,0.6);
+  histContainer_["muoniso"]        = fs->make<TH1F>("muoniso",         ";Relative isolation (#Delta#beta);# muons ",  100, 0, 0.5);
+  histContainer_["muonisov2"]        = fs->make<TH1F>("muonisov2",         ";Relative isolation (#Delta#beta);# muons ",  100, 0, 0.5);
+  histContainer_["muonchiso"]      = fs->make<TH1F>("muonchiso",       ";Charged hadron isolation [GeV];# muons ",  100, 0, 10);
+  histContainer_["muonpuchiso"]    = fs->make<TH1F>("muonpuchiso",     ";Pileup charged hadron isolation [GeV];# muons ",  100, 0, 10);
+  histContainer_["muonneuthadiso"] = fs->make<TH1F>("muonneuthadiso",  ";Neutral hadron isolation [GeV];# muons ",  100, 0, 10);
+  histContainer_["muonphotoniso"]  = fs->make<TH1F>("muonphotoniso",   ";Photon isolation [GeV];# muons ",  100, 0, 10);
+  histContainer2d_["muonneutreliso"] = fs->make<TH2F>("muonneutreliso",  ";# vertices;Neutral relative isolation;# muons ",100,0,100,100, 0, 1.0);
+  histContainer2d_["muonpuchreliso"] = fs->make<TH2F>("muonpuchreliso",  ";# vertices;Pileup charged relative isolation;# muons ",100,0,100,100, 0, 1.0);
+  histContainer_["nselmuons"]      = fs->make<TH1F>("nselmuons",       ";# reconstructed muons;Events",              5, 0.,5.);
 
   histContainer_["nrecoelectrons"]    = fs->make<TH1F>("nrecoelectrons",  ";# reconstructed electrons;Events",         5, 0., 5.);
   histContainer_["electronpt"]        = fs->make<TH1F>("electronpt",      ";Transverse momentum [GeV];# electrons",    100, 0., 300.);
