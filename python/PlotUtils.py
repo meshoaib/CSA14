@@ -167,6 +167,7 @@ class Plot:
                 self.garbageList.append(frame)
             if genPseudoData and self.data is None and totalMC.ClassName().find('TH1')>=0:
                 self.data=totalMC.Clone('pseudodata')
+                self.data.Sumw2()
                 self.data.SetLineColor(1)
                 self.data.SetMarkerStyle(20)
                 self.data.SetMarkerColor(1)
