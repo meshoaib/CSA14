@@ -238,6 +238,10 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 		ev_.l_pt=mu.pt();
 		ev_.l_eta=mu.eta();
 		ev_.l_phi=mu.phi();
+		ev_.l_chargedHadronIso=mu.chargedHadronIso();
+                ev_.l_neutralHadronIso=mu.neutralHadronIso();
+                ev_.l_photonIso=mu.photonIso();
+                ev_.l_puChargedHadronIso=mu.puChargedHadronIso();
 	      }
 	  }
       }
@@ -325,12 +329,21 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	    histContainer_["jetpileupid"]->Fill(j.userFloat("pileupJetId:fullDiscriminant"));
 	    float svtxmass=j.userFloat("vtxMass");
 	    histContainer_["jetsecvtxmass"]->Fill(svtxmass);
+	    int vtxNtracks=j.userFloat("vtxNtracks");
+	    histContainer_["jetvtxNtracks"]->Fill(vtxNtracks);
+	    float vtx3DVal=j.userFloat("vtx3DVal");
+	    histContainer_["jetvtx3DVal"]->Fill(vtx3DVal);
+	    float vtx3DSig=j.userFloat("vtx3DSig");
+	    histContainer_["jetvtx3DSig"]->Fill(vtx3DSig);
 
 	    ev_.j_pt[ev_.nj]=j.pt();
 	    ev_.j_eta[ev_.nj]=j.eta();
 	    ev_.j_phi[ev_.nj]=j.phi();
 	    ev_.j_csv[ev_.nj]=csv;
 	    ev_.j_vtxmass[ev_.nj]=svtxmass;
+	    ev_.j_vtxNtracks[ev_.nj]=vtxNtracks;
+	    ev_.j_vtx3DVal[ev_.nj]=vtx3DVal;
+	    ev_.j_vtx3DSig[ev_.nj]=vtx3DSig;
 	    ev_.j_puid[ev_.nj]=j.userFloat("pileupJetId:fullDiscriminant");
 	    ev_.j_flav[ev_.nj]=j.partonFlavour();
 	    const reco::Candidate *genParton = j.genParton();
@@ -433,6 +446,9 @@ MiniAnalyzer::beginJob()
   histContainer_["jetcsv"]         = fs->make<TH1F>("jetcsv",      ";Combined secondary vertes;# jets", 100, -1.2, 1.2);
   histContainer_["jetpileupid"]    = fs->make<TH1F>("jetpileupid", ";Pileup jet id;#jets", 100, -1.2, 1.2);
   histContainer_["jetsecvtxmass"]  = fs->make<TH1F>("jetvtxMass", ";Secondary vertex mass [GeV];#jets", 100, 0., 6.);
+  histContainer_["jetvtxNtracks"]  = fs->make<TH1F>("jetvtxNtracks", ";Vertex Tracks;#jets", 6, 0., 6.);  
+  histContainer_["jetvtx3DVal"]  = fs->make<TH1F>("jetvtx3DVal", ";vtx3DVal [cm];#jets", 100, -5., 5.);
+  histContainer_["jetvtx3DSig"]  = fs->make<TH1F>("jetvtx3DSig", ";vtx3DSig;#jets", 100, 0., 5.);
   histContainer_["nseljets"]       = fs->make<TH1F>("nseljets",    ";#selected jets;Events", 6, 3., 10.);
   histContainer_["ncsvmjets"]      = fs->make<TH1F>("ncsvmjets",    ";b-tagged jets (CSVM);Events", 10, 0., 10.);
   
@@ -447,8 +463,8 @@ MiniAnalyzer::beginJob()
 
   //instruct ROOT to compute the uncertainty from the square root of weights
   //http://root.cern.ch/root/html/TH1.html#TH1:Sumw2
-  for(std::unordered_map<std::string,TH1F*>::iterator it=histContainer_.begin();   it!=histContainer_.end();   it++) it->second->Sumw2();
-  for(std::unordered_map<std::string,TH2F*>::iterator it=histContainer2d_.begin(); it!=histContainer2d_.end(); it++) it->second->Sumw2();
+//  for(std::unordered_map<std::string,TH1F*>::iterator it=histContainer_.begin();   it!=histContainer_.end();   it++) it->second->Sumw2();
+//  for(std::unordered_map<std::string,TH2F*>::iterator it=histContainer2d_.begin(); it!=histContainer2d_.end(); it++) it->second->Sumw2();
 
   //create a tree for the selected events
   tree_ = fs->make<TTree>("AnaTree", "AnaTree");
