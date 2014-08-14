@@ -277,7 +277,7 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 						  rho) );
     
     if( passVetoId 
-	&& fabs(el.superCluster()->eta()) > 1.4442 && fabs(el.superCluster()->eta()) < 1.5660 
+	&& (fabs(el.superCluster()->eta()) < 1.4442 || fabs(el.superCluster()->eta()) > 1.5660)
 	&& el.gsfTrack()->trackerExpectedHitsInner().numberOfHits() <= 0 
 	&& el.dB() < 0.02 
 	&& el.passConversionVeto() == true 

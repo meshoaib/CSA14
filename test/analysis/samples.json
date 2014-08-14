@@ -19,17 +19,17 @@
     {
       "tag":"W+jets",
       "isdata":false,
-      "color":593,
+      "color":41,
       "lcolor":1,
       "marker":1,
       "data":[
-        {"dtag":"w1234jets_v5_v1", "split":1, "xsec":1, "br":[ 0.99 ]}
+        {"dtag":"wjets", "split":1, "xsec":50100, "br":[ 1.0 ]}
       ]
 },	
  {
       "tag":"DY+jets",
       "isdata":false,
-      "color":594,
+      "color":3,
       "lcolor":1,
       "marker":1,
       "data":[
@@ -37,9 +37,9 @@
       ]
 },
  {
-      "tag":"MC",
+      "tag":"t#bar{t}",
       "isdata":false,
-      "color":591,
+      "color":2,
       "lcolor":1,
       "marker":1,
       "data":[
