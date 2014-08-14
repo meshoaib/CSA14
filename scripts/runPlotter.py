@@ -145,6 +145,7 @@ def checkMissingFiles(inDir, jsonUrl):
 def makePlotPacked(packedargs):
     key, inDir, procList, xsecweights, options = packedargs
     return makePlot(key, inDir, procList, xsecweights, options)
+
 def makePlot(key, inDir, procList, xsecweights, options):
     from UserCode.TopAnalysis.PlotUtils import Plot
     print "... processing", key
@@ -215,7 +216,7 @@ def makePlot(key, inDir, procList, xsecweights, options):
                 hist.Scale(options.lumi)
             newPlot.add(hist,title,color,isData)
 
-    newPlot.show(options.outDir)
+    newPlot.show(options.outDir,options.genPseudoData)
     if(options.debug or newPlot.name.find('flow')>=0 ) : newPlot.showTable(options.outDir)
     newPlot.reset()
 
@@ -357,6 +358,8 @@ if __name__ == "__main__":
                            ' [default: %default]')
     parser.add_option('-o', '--outDir', dest='outDir', default='plots',
                       help='Output directory [default: %default]')
+    parser.add_option('-g', '--genPseudoData', dest='genPseudoData', action="store_true", default=False,
+                      help='Generate pseudo data')
     parser.add_option("--jobs", default=0,
                       action="store", type="int", dest="jobs",
                       help=("Run N jobs in parallel."

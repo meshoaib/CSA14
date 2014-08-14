@@ -6,7 +6,9 @@ process.load("FWCore.MessageService.MessageLogger_cfi")
 
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(3000000))
 
+
 from UserCode.TopAnalysis.csa14.TT_PU_v2_cfi import source as TT_source
+#from UserCode.TopAnalysis.csa14.TTJets_MG_PU20bx25_POSTLS170_cfi import source as TT_source
 #from UserCode.TopAnalysis.csa14.TT_wjets_cfi import source as TT_source
 #from UserCode.TopAnalysis.csa14.TT_w1234jets_V5_v1_cfi import source as TT_source
 #from UserCode.TopAnalysis.csa14.TT_w1234jets_V5_v2_cfi import source as TT_source 
@@ -40,6 +42,7 @@ process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 #tfileservice
 process.TFileService = cms.Service("TFileService",
         fileName = cms.string("TT_PU_v2.root")
+#                                   fileName = cms.string('TTJets_MG_PU20bx25_POSTLS170.root')
 #        fileName = cms.string("wjets.root")
 #        fileName = cms.string("w1234jets_v5_v1.root")
 #        fileName = cms.string("w1234jets_v5_v2.root") 
