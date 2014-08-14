@@ -7,8 +7,45 @@
       "lcolor":1,
       "marker":1,
       "data":[
-        { "dtag":"QCD_80_120_MuEnriched", "split":1, "xsec":1024000, "br":[ 0.0395 ] }
+        {"dtag":"QCD_80_120_MuEnriched", "split":1, "xsec":3000000, "br":[ 0.0395 ]},
+	{"dtag":"QCD_170_300_MuEnriched", "split":1, "xsec":120300, "br":[ 0.0676 ]},
+	{"dtag":"QCD_300_470_MuEnriched", "split":1, "xsec":7475, "br":[ 0.0864 ]},
+	{"dtag":"QCD_470_600_MuEnriched", "split":1, "xsec":587.1, "br":[ 0.1024 ]},
+	{"dtag":"QCD_600_800_MuEnriched", "split":1, "xsec":167, "br":[ 0.0996 ]},
+	{"dtag":"QCD_800_1000_MuEnriched", "split":1, "xsec":28.25, "br":[ 0.1033 ]},
+	{"dtag":"QCD_1000_MuEnriched", "split":1, "xsec":8.975, "br":[ 0.1097 ]}
       ]
-    }
+    },
+    {
+      "tag":"W+jets",
+      "isdata":false,
+      "color":593,
+      "lcolor":1,
+      "marker":1,
+      "data":[
+        {"dtag":"w1234jets_v5_v1", "split":1, "xsec":1, "br":[ 0.99 ]}
+      ]
+},	
+ {
+      "tag":"DY+jets",
+      "isdata":false,
+      "color":594,
+      "lcolor":1,
+      "marker":1,
+      "data":[
+        {"dtag":"DY", "split":1, "xsec":4746, "br":[ 1 ]}
+      ]
+},
+ {
+      "tag":"MC",
+      "isdata":false,
+      "color":591,
+      "lcolor":1,
+      "marker":1,
+      "data":[
+        {"dtag":"TT_PU_v2", "split":1, "xsec":424.5, "br":[ 1 ]}
+      ]
+}
+
   ]
 }

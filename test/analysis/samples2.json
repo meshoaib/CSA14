@@ -1,0 +1,11 @@
+"dtag":"QCD_80_120_Tune4C", "split":1, "xsec":3000114.3, "br":[ 1 ],
+"dtag":"QCD_120_170_Tune4C", "split":1, "xsec":493200, "br":[ 1 ],
+"dtag":"QCD_170_300_Tune4C", "split":1, "xsec":120300, "br":[ 1 ],
+"dtag":"QCD_300_470_Tune4C", "split":1, "xsec":7475, "br":[ 1 ],
+"dtag":"QCD_470_600_Tune4C", "split":1, "xsec":587.1, "br":[ 1 ],
+"dtag":"QCD_600_800_Tune4C", "split":1, "xsec":167, "br":[ 1 ],
+"dtag":"QCD_800_1000_Tune4C", "split":1, "xsec":28.25, "br":[ 1 ],
+"dtag":"QCD_1000_1400_Tune4C", "split":1, "xsec":8.195, "br":[ 1 ],
+"dtag":"QCD_1400_1800_Tune4C", "split":1, "xsec":0.7346, "br":[ 1 ],
+"dtag":"QCD_1800_Tune4C", "split":1, "xsec":0.1091, "br":[ 1 ]
+
