@@ -194,9 +194,11 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
     //isolation
     float relIso((mu.chargedHadronIso()+max(0.,mu.neutralHadronIso()+mu.photonIso()-deltaBeta*mu.puChargedHadronIso()))/mu.pt());
+    float relchIso((mu.chargedHadronIso())/mu.pt());
     float relIsoV2((mu.chargedHadronIso()+max(0.,mu.neutralHadronIso()+mu.photonIso()-deltaBetaV2*mu.puChargedHadronIso()))/mu.pt());
     float neutralIso(mu.neutralHadronIso()+mu.photonIso());
-    bool passIso( relIso<0.12 );
+//    bool passIso( relIso<0.12 );
+    bool passIso( relchIso<0.05 );
 
     if( mu.isPFMuon() 
 	&& mu.isGlobalMuon() 
