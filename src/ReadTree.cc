@@ -23,8 +23,9 @@ void ReadTree(TString filename,TString output)
   attachToMiniEventTree(t,ev);
 
   //fill histograms, loop over all entries
-//uint32_t nCSVMtags(0);
-float pt=0.0,eta=0.0, thirdjetpt=0.0, csv=0.0;
+
+uint32_t nCSVMtags(0);
+float pt=0.0,eta=0.0, thirdjetpt=0.0,csv=0.0;
 
   Int_t nentries = (Int_t)t->GetEntriesFast();
   for (Int_t i=0;i<nentries;i++)
@@ -46,17 +47,17 @@ float pt=0.0,eta=0.0, thirdjetpt=0.0, csv=0.0;
 	    }
             if(j >=4)
   	    h4->Fill(1);
-
+	}
 //float csv=j.bDiscriminator("combinedSecondaryVertexBJetTags");
         csv = ev.j_csv[j];
-if (csv>0.679) //nCSVMtags++;
+if (csv>0.679) nCSVMtags++;
 //{
-if(csv >=1)
+if(nCSVMtags >=1)
 h4->Fill(2);
-if(csv >=2)
+if(nCSVMtags >=2)
 h4->Fill(3);
 	}
-}
+
 ptofthirdjet->Fill(thirdjetpt);
 
 	jetpt->Fill(pt);
