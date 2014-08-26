@@ -7,13 +7,14 @@
       "lcolor":1,
       "marker":1,
       "data":[
-        {"dtag":"QCD_80_120_MuEnriched", "split":1, "xsec":3000000, "br":[ 0.0395 ]},
-	{"dtag":"QCD_170_300_MuEnriched", "split":1, "xsec":120300, "br":[ 0.0676 ]},
-	{"dtag":"QCD_300_470_MuEnriched", "split":1, "xsec":7475, "br":[ 0.0864 ]},
-	{"dtag":"QCD_470_600_MuEnriched", "split":1, "xsec":587.1, "br":[ 0.1024 ]},
-	{"dtag":"QCD_600_800_MuEnriched", "split":1, "xsec":167, "br":[ 0.0996 ]},
-	{"dtag":"QCD_800_1000_MuEnriched", "split":1, "xsec":28.25, "br":[ 0.1033 ]},
-	{"dtag":"QCD_1000_MuEnriched", "split":1, "xsec":8.975, "br":[ 0.1097 ]}
+        {"dtag":"chargediso_QCD_80_120_MuEnriched_PU20bx25", "split":1, "xsec":3000000, "br":[ 0.0395 ]},
+        {"dtag":"chargediso_QCD_120_170_MuEnriched_PU20bx25", "split":1, "xsec":493200, "br":[ 0.0473 ]},
+	{"dtag":"chargediso_QCD_170_300_MuEnriched_PU20bx25", "split":1, "xsec":120300, "br":[ 0.0676 ]},
+	{"dtag":"chargediso_QCD_300_470_MuEnriched_PU20bx25", "split":1, "xsec":7475, "br":[ 0.0864 ]},
+	{"dtag":"chargediso_QCD_470_600_MuEnriched_PU20bx25", "split":1, "xsec":587.1, "br":[ 0.1024 ]},
+	{"dtag":"chargediso_QCD_600_800_MuEnriched_PU20bx25", "split":1, "xsec":167, "br":[ 0.0996 ]},
+	{"dtag":"chargediso_QCD_800_1000_MuEnriched_PU20bx25", "split":1, "xsec":28.25, "br":[ 0.1033 ]},
+	{"dtag":"chargediso_QCD_1000_MuEnriched_PU20bx25", "split":1, "xsec":8.975, "br":[ 0.1097 ]}
       ]
     },
     {
@@ -23,7 +24,7 @@
       "lcolor":1,
       "marker":1,
       "data":[
-        {"dtag":"wjets", "split":1, "xsec":50100, "br":[ 1.0 ]}
+        {"dtag":"chargediso_wjets_PU20bx25", "split":1, "xsec":50100, "br":[ 1.0 ]}
       ]
 },	
  {
@@ -33,7 +34,7 @@
       "lcolor":1,
       "marker":1,
       "data":[
-        {"dtag":"DY", "split":1, "xsec":4746, "br":[ 1 ]}
+        {"dtag":"chargediso_DY_PU20bx25", "split":1, "xsec":4746, "br":[ 1.0 ]}
       ]
 },
  {
@@ -43,7 +44,7 @@
       "lcolor":1,
       "marker":1,
       "data":[
-        {"dtag":"TT_PU_v2", "split":1, "xsec":424.5, "br":[ 1 ]}
+        {"dtag":"chargediso_TT_PU20bx25_v2", "split":1, "xsec":424.5, "br":[ 1.0 ]}
       ]
 }
 
