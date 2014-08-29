@@ -3,6 +3,6 @@
 
 #include <TString.h>
 
-void ReadTree(TString filename="TT_PU20bx25_v2.root",TString output="plots/");
+void ReadTree(TString filename="chargediso_TT_PU20bx25_v2.root",TString output="plots/");
 
 #endif
