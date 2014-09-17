@@ -170,34 +170,37 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   ev_.rho=rho;
 	    
   histContainer_["cutflow"]->Fill(0);
+  histContainer_["ecutflow"]->Fill(0);
+  histContainer_["mucutflow"]->Fill(0);
 
 
   //
   // MUONS
   // cf. https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideMuonId  
   //
-  float mupt(0),muphi(0);
+  float leptonpt(0), leptonphi(0);
   edm::Handle<pat::MuonCollection> muons;
   iEvent.getByToken(muonToken_, muons);
   histContainer_["nrecomuons"]->Fill(muons->size());
-  std::vector<const pat::Muon *> selectedMuons;        
+  std::vector<const pat::Muon *> selectedMuons,vetoMuons;        
   double deltaBeta(0.5),deltaBetaV2(1.09);
   for (const pat::Muon &mu : *muons) { 
     
     //kinematics
     bool passPt( mu.pt() > 26 );
+    bool passVetoPt( mu.pt()>10 );
     bool passEta(fabs(mu.eta()) < 2.1 );
-
+    
     //distance to the PV
     float dz(fabs( mu.vertex().z() - primVtx.z())); 
     bool passDB( mu.dB()<0.2 && dz<0.5 );
-
+    
     //isolation
     float relIso((mu.chargedHadronIso()+max(0.,mu.neutralHadronIso()+mu.photonIso()-deltaBeta*mu.puChargedHadronIso()))/mu.pt());
     float relchIso((mu.chargedHadronIso())/mu.pt());
     float relIsoV2((mu.chargedHadronIso()+max(0.,mu.neutralHadronIso()+mu.photonIso()-deltaBetaV2*mu.puChargedHadronIso()))/mu.pt());
     float neutralIso(mu.neutralHadronIso()+mu.photonIso());
-//    bool passIso( relIso<0.12 );
+    //    bool passIso( relIso<0.12 );
     bool passIso( relchIso<0.05 );
 
     if( mu.isPFMuon() 
@@ -231,8 +234,8 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	    if( passPt && passEta )
 	      {
 		selectedMuons.push_back( &mu );
-		mupt = mu.pt();
-		muphi = mu.phi();
+		leptonpt = mu.pt();
+		leptonphi = mu.phi();
 		
 		//save the selected lepton
 		ev_.l_id=13;
@@ -245,14 +248,14 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                 ev_.l_photonIso=mu.photonIso();
                 ev_.l_puChargedHadronIso=mu.puChargedHadronIso();
 	      }
+	    else if(passVetoPt && passEta)
+	      {
+		vetoMuons.push_back( &mu );
+	      }
 	  }
       }
   }
   histContainer_["nselmuons"]->Fill(selectedMuons.size());
-
-  //require at least one muon
-  if(selectedMuons.size()==1) histContainer_["cutflow"]->Fill(1);
-  else return;
 
   //
   // ELECTRONS
@@ -261,9 +264,12 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   edm::Handle<pat::ElectronCollection> electrons;
   iEvent.getByToken(electronToken_, electrons);
   histContainer_["nrecoelectrons"]->Fill(electrons->size());
-  std::vector<const pat::Electron *> selectedElectrons;
+  std::vector<const pat::Electron *> selectedElectrons,vetoElectrons;
   for (const pat::Electron &el : *electrons) {        	
 
+    bool passPt(el.pt()>30);
+    bool passVetoPt(el.pt()>20);
+    
     //use a cut based id
     bool passVetoId( EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::VETO, el.isEB(), el.pt(), el.eta(),
                                                   el.deltaEtaSuperClusterTrackAtVtx(), 
@@ -277,28 +283,72 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 						  !(el.passConversionVeto()), 
 						  el.gsfTrack()->trackerExpectedHitsInner().numberOfLostHits(),
 						  rho) );
+    bool passTightId( EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::TIGHT, el.isEB(), el.pt(), el.eta(),
+						   el.deltaEtaSuperClusterTrackAtVtx(), 
+						   el.deltaPhiSuperClusterTrackAtVtx(),
+						   el.sigmaIetaIeta(),
+						   el.hadronicOverEm(),
+						   (1.0/el.ecalEnergy() - el.eSuperClusterOverP()/el.ecalEnergy()),
+						   fabs(el.gsfTrack()->dxy(primVtx.position())),
+						   fabs(el.gsfTrack()->dz(primVtx.position())),
+						   0., 0., 0., 
+						   !(el.passConversionVeto()), 
+						   el.gsfTrack()->trackerExpectedHitsInner().numberOfLostHits(),
+						   rho) );
     
-    if( passVetoId 
+    
+    //float neutralIso(el.neutralHadronIso()+el.photonIso());
+    //float relIso((el.chargedHadronIso()+max(0.,neutralIso-deltaBeta*el.puChargedHadronIso()))/el.pt());
+    float relchIso((el.chargedHadronIso())/el.pt());
+    bool passIso( relchIso<0.05 );
+    bool passVetoIso( relchIso<0.15 );
+    
+    if( passVetoId && passVetoIso
 	&& (fabs(el.superCluster()->eta()) < 1.4442 || fabs(el.superCluster()->eta()) > 1.5660)
 	&& el.gsfTrack()->trackerExpectedHitsInner().numberOfHits() <= 0 
 	&& el.dB() < 0.02 
 	&& el.passConversionVeto() == true 
-	&& (el.chargedHadronIso()+max(0.,el.neutralHadronIso()+el.photonIso()-0.50*el.puChargedHadronIso()))/el.pt() < 0.1 )
+	)
       {
 	if(fabs(el.eta()) < 2.5) histContainer_["electronpt"]->Fill(el.pt());    //N-1 plot
 	if(el.pt() > 20)        histContainer_["electroneta"]->Fill(fabs(el.eta()));  //N-1 plot
-	if(el.pt() > 20 && fabs(el.eta()) < 2.5)
+	if(passPt && fabs(el.eta()) < 2.5 && passTightId && passIso)
 	  {
 	    selectedElectrons.push_back(&el);
+	    leptonpt = el.pt();
+	    leptonphi = el.phi();
+
+	    //save the selected lepton
+	    ev_.l_id=11;
+	    ev_.l_charge=el.charge();
+	    ev_.l_pt=el.pt();
+	    ev_.l_eta=el.eta();
+	    ev_.l_phi=el.phi();
+	    ev_.l_chargedHadronIso=el.chargedHadronIso();
+	    ev_.l_neutralHadronIso=el.neutralHadronIso();
+	    ev_.l_photonIso=el.photonIso();
+	    ev_.l_puChargedHadronIso=el.puChargedHadronIso();
+	  }
+	else if(passVetoPt && fabs(el.eta()) < 2.5 && passVetoId)
+	  {
+	    vetoElectrons.push_back(&el);
 	  }
       }
   }
   histContainer_["nselelectrons"]->Fill(selectedElectrons.size());
   
-  //require at least one electron
-  if(selectedElectrons.size()==0) histContainer_["cutflow"]->Fill(2);
-  else return;
+  //require only 1 tight lepton in the event
+  int nSelectedLeptons(selectedElectrons.size()+selectedMuons.size());
+  if(nSelectedLeptons>1) return;
+  histContainer_["cutflow"]->Fill(1);
+  if(selectedElectrons.size()==1)  histContainer_["ecutflow"]->Fill(1);
+  if(selectedMuons.size()==1)      histContainer_["mucutflow"]->Fill(1);
 
+  //require no other leptons in the event
+  int nVetoLeptons(vetoElectrons.size()+vetoMuons.size());
+  if(nVetoLeptons>0) return;
+  histContainer_["cutflow"]->Fill(2);
+  
   //
   // JETS
   //
@@ -310,15 +360,17 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   ev_.nj=0;
   for (const pat::Jet &j : *jets) {
 	  
-    float dR2muon=deltaR(j,*(selectedMuons[0]));
+//    float dR2lepton= selectedMuons.size()==1 ? 
+//      deltaR(j,*(selectedMuons[0])) :
+//      deltaR(j,*(selectedElectrons[0]));
     float rawEnergy(j.energy()*j.jecFactor("Uncorrected"));
     if ( j.numberOfDaughters() > 1 
 	 && (j.neutralHadronEnergy() + j.HFHadronEnergy())/rawEnergy < 0.99 
 	 && j.neutralEmEnergyFraction() < 0.99 
 	 && (j.chargedEmEnergyFraction() < 0.99 || fabs(j.eta()) >= 2.4)
 	 && (j.chargedHadronEnergyFraction() > 0. || fabs(j.eta()) >= 2.4) 
-	 && (j.chargedMultiplicity() > 0 || fabs(j.eta()) >= 2.4)
-	 && dR2muon>0.5)
+	 && (j.chargedMultiplicity() > 0 || fabs(j.eta()) >= 2.4))
+//	 && dR2lepton>0.5)
       {
 	if(fabs(j.eta()) < 2.5) histContainer_["jetpt"]->Fill(j.pt());    //N-1 plots
 	if(j.pt() > 30)        histContainer_["jeteta"]->Fill(fabs(j.eta())); 
@@ -357,6 +409,7 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   }
   histContainer_["nseljets"]->Fill(selectedJets.size());
 
+
   //
   // MET
   //
@@ -364,8 +417,8 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.getByToken(metToken_, mets);
   float metpt = mets->at(0).pt();
   float metphi = mets->at(0).phi();
-  float dphi_met_mu = deltaPhi(muphi, metphi); // use the function to restrict to the 0,pi range
-  float mt=sqrt(2*mupt*metpt*(1-cos(dphi_met_mu)));
+  float dphi_met_lepton = deltaPhi(leptonphi, metphi); // use the function to restrict to the 0,pi range
+  float mt=sqrt(2*leptonpt*metpt*(1-cos(dphi_met_lepton)));
 
   //save to ttree
   ev_.met_pt=metpt;
@@ -375,30 +428,34 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   //
   // FINAL SELECTION PLOTS
   //
-  if(selectedJets.size()>=3) 
+  if(selectedJets.size()>=2)
     {
       histContainer_["cutflow"]->Fill(3);
-      histContainer_["mt_3"]->Fill(mt);
       tree_->Fill();
+    }
+  if(selectedJets.size()>=3) 
+    {
+      histContainer_["cutflow"]->Fill(4);
+      histContainer_["mt_3"]->Fill(mt);
     }
   if(selectedJets.size()>=4) 
     {
       histContainer_["mt_4"]->Fill(mt);
-      histContainer_["cutflow"]->Fill(4);
+      histContainer_["cutflow"]->Fill(5);
       histContainer_["ncsvmjets"]->Fill(nCSVMtags);
       histContainer_["nvertices"]->Fill(vertices->size());
       if(nCSVMtags>=1) 
 	{
-	  histContainer_["cutflow"]->Fill(5);
+	  histContainer_["cutflow"]->Fill(6);
 	  histContainer_["mt_41b"] ->Fill(mt);
 	}
       if(nCSVMtags>=2) 
 	{
-	  histContainer_["cutflow"]->Fill(6);
+	  histContainer_["cutflow"]->Fill(7);
 	  histContainer_["mt_42b"] ->Fill(mt);
 	  histContainer_["metpt"]->Fill(metpt);
 	  histContainer_["metphi"] ->Fill(metphi);
-	  histContainer_["dphimetmuon"]->Fill(dphi_met_mu );
+	  histContainer_["dphimetmuon"]->Fill(dphi_met_lepton );
 	}
     }
   
@@ -411,14 +468,17 @@ void
 MiniAnalyzer::beginJob()
 {
   edm::Service<TFileService> fs;
-  histContainer_["cutflow"] = fs->make<TH1F>("cutflow",    ";Selection cut;Events", 7, 0., 7.); 
+  histContainer_["cutflow"] = fs->make<TH1F>("cutflow",    ";Selection cut;Events", 8, 0., 8.); 
   histContainer_["cutflow"] -> GetXaxis()->SetBinLabel(1,"reco");
   histContainer_["cutflow"] -> GetXaxis()->SetBinLabel(2,"=1 #mu");
   histContainer_["cutflow"] -> GetXaxis()->SetBinLabel(3,"=0 e");
-  histContainer_["cutflow"] -> GetXaxis()->SetBinLabel(4,"#geq3 jets");
-  histContainer_["cutflow"] -> GetXaxis()->SetBinLabel(5,"#geq4 jets");
-  histContainer_["cutflow"] -> GetXaxis()->SetBinLabel(6,"#geq1 b-tag");
-  histContainer_["cutflow"] -> GetXaxis()->SetBinLabel(7,"#geq2 b-tags");
+  histContainer_["cutflow"] -> GetXaxis()->SetBinLabel(4,"#geq2 jets");
+  histContainer_["cutflow"] -> GetXaxis()->SetBinLabel(5,"#geq3 jets");
+  histContainer_["cutflow"] -> GetXaxis()->SetBinLabel(6,"#geq4 jets");
+  histContainer_["cutflow"] -> GetXaxis()->SetBinLabel(7,"#geq1 b-tag");
+  histContainer_["cutflow"] -> GetXaxis()->SetBinLabel(8,"#geq2 b-tags");
+  histContainer_["ecutflow"] = (TH1F *) histContainer_["cutflow"]->Clone("ecutflow");
+  histContainer_["mucutflow"] = (TH1F *) histContainer_["cutflow"]->Clone("mucutflow");
 
   histContainer_["nvertices"] = fs->make<TH1F>("nvertices",    ";# vertices;Events", 100, 0., 100.); 
 
