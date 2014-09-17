@@ -183,7 +183,6 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.getByToken(muonToken_, muons);
   histContainer_["nrecomuons"]->Fill(muons->size());
   std::vector<const pat::Muon *> selectedMuons,vetoMuons;        
-  double deltaBeta(0.5),deltaBetaV2(1.09);
   for (const pat::Muon &mu : *muons) { 
     
     //kinematics
@@ -196,11 +195,7 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     bool passDB( mu.dB()<0.2 && dz<0.5 );
     
     //isolation
-    float relIso((mu.chargedHadronIso()+max(0.,mu.neutralHadronIso()+mu.photonIso()-deltaBeta*mu.puChargedHadronIso()))/mu.pt());
     float relchIso((mu.chargedHadronIso())/mu.pt());
-    float relIsoV2((mu.chargedHadronIso()+max(0.,mu.neutralHadronIso()+mu.photonIso()-deltaBetaV2*mu.puChargedHadronIso()))/mu.pt());
-    float neutralIso(mu.neutralHadronIso()+mu.photonIso());
-    //    bool passIso( relIso<0.12 );
     bool passIso( relchIso<0.05 );
 
     if( mu.isPFMuon() 
@@ -213,14 +208,11 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       {
 	if(passDB && passPt && passEta) 
 	  {
-	    histContainer_["muoniso"]->Fill(relIso);
-	    histContainer_["muonisov2"]->Fill(relIsoV2);
+	    histContainer_["muonchreliso"]->Fill(relchIso);
 	    histContainer_["muonchiso"]->Fill(mu.chargedHadronIso());
 	    histContainer_["muonneuthadiso"]->Fill(mu.neutralHadronIso());
 	    histContainer_["muonphotoniso"]->Fill(mu.photonIso());
 	    histContainer_["muonpuchiso"]->Fill(mu.puChargedHadronIso());
-	    histContainer2d_["muonneutreliso"]->Fill(vertices->size(),neutralIso/mu.pt());
-	    histContainer2d_["muonpuchreliso"]->Fill(vertices->size(),mu.puChargedHadronIso()/mu.pt());
 	  }
 	if(passIso && passPt && passEta) 
 	  {
@@ -267,9 +259,11 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   std::vector<const pat::Electron *> selectedElectrons,vetoElectrons;
   for (const pat::Electron &el : *electrons) {        	
 
+    //kinematics cuts
     bool passPt(el.pt()>30);
     bool passVetoPt(el.pt()>20);
-    
+    bool passEta(fabs(el.eta()) < 2.5 && (fabs(el.superCluster()->eta()) < 1.4442 || fabs(el.superCluster()->eta()) > 1.5660));
+
     //use a cut based id
     bool passVetoId( EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::VETO, el.isEB(), el.pt(), el.eta(),
                                                   el.deltaEtaSuperClusterTrackAtVtx(), 
@@ -296,28 +290,38 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 						   el.gsfTrack()->trackerExpectedHitsInner().numberOfLostHits(),
 						   rho) );
     
-    
-    //float neutralIso(el.neutralHadronIso()+el.photonIso());
-    //float relIso((el.chargedHadronIso()+max(0.,neutralIso-deltaBeta*el.puChargedHadronIso()))/el.pt());
+    //isolation
     float relchIso((el.chargedHadronIso())/el.pt());
     bool passIso( relchIso<0.05 );
     bool passVetoIso( relchIso<0.15 );
     
-    if( passVetoId && passVetoIso
-	&& (fabs(el.superCluster()->eta()) < 1.4442 || fabs(el.superCluster()->eta()) > 1.5660)
-	&& el.gsfTrack()->trackerExpectedHitsInner().numberOfHits() <= 0 
+    if( el.gsfTrack()->trackerExpectedHitsInner().numberOfHits() <= 0 
 	&& el.dB() < 0.02 
 	&& el.passConversionVeto() == true 
 	)
       {
-	if(fabs(el.eta()) < 2.5) histContainer_["electronpt"]->Fill(el.pt());    //N-1 plot
-	if(el.pt() > 20)        histContainer_["electroneta"]->Fill(fabs(el.eta()));  //N-1 plot
-	if(passPt && fabs(el.eta()) < 2.5 && passTightId && passIso)
+	
+	if(passPt && passEta && passTightId)
+	  {
+	    histContainer_["electronchreliso"]->Fill(relchIso);
+	    histContainer_["electronchiso"]->Fill(el.chargedHadronIso());
+	    histContainer_["electronneuthadiso"]->Fill(el.neutralHadronIso());
+	    histContainer_["electronphotoniso"]->Fill(el.photonIso());
+	    histContainer_["electronpuchiso"]->Fill(el.puChargedHadronIso());
+	  }
+	
+	if(passTightId && passIso) 
+	  {
+	    if(passEta) histContainer_["electronpt"]->Fill(el.pt());    //N-1 plot
+	    if(passPt) histContainer_["electroneta"]->Fill(fabs(el.eta()));  //N-1 plot
+	  }
+
+	if(passPt && passEta && passTightId && passIso)
 	  {
 	    selectedElectrons.push_back(&el);
 	    leptonpt = el.pt();
 	    leptonphi = el.phi();
-
+	    
 	    //save the selected lepton
 	    ev_.l_id=11;
 	    ev_.l_charge=el.charge();
@@ -329,7 +333,7 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	    ev_.l_photonIso=el.photonIso();
 	    ev_.l_puChargedHadronIso=el.puChargedHadronIso();
 	  }
-	else if(passVetoPt && fabs(el.eta()) < 2.5 && passVetoId)
+	else if(passVetoPt && passEta && passVetoId && passVetoIso)
 	  {
 	    vetoElectrons.push_back(&el);
 	  }
@@ -467,7 +471,7 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	  histContainer_["mt_42b"] ->Fill(mt);
 	  histContainer_["metpt"]->Fill(metpt);
 	  histContainer_["metphi"] ->Fill(metphi);
-	  histContainer_["dphimetmuon"]->Fill(dphi_met_lepton );
+	  histContainer_["dphimetlepton"]->Fill(dphi_met_lepton );
 	}
     }
   
@@ -498,19 +502,21 @@ MiniAnalyzer::beginJob()
   histContainer_["muoneta"]        = fs->make<TH1F>("muoneta",         ";Pseudo-rapidity;#muons ",                   100, 0, 3.);
   histContainer_["muondb"]         = fs->make<TH1F>("muondb",          ";d_{0} [cm];# muons",         100, 0.,0.3);
   histContainer_["muondz"]         = fs->make<TH1F>("muondz",          ";|d_{z}| [cm];# muons",       100, 0.,0.6);
-  histContainer_["muoniso"]        = fs->make<TH1F>("muoniso",         ";Relative isolation (#Delta#beta);# muons ",  100, 0, 0.5);
-  histContainer_["muonisov2"]        = fs->make<TH1F>("muonisov2",         ";Relative isolation (#Delta#beta);# muons ",  100, 0, 0.5);
+  histContainer_["muonchreliso"]   = fs->make<TH1F>("muonchreliso",       ";Relative charged hadron isolation;# muons ",  100, 0, 0.1);
   histContainer_["muonchiso"]      = fs->make<TH1F>("muonchiso",       ";Charged hadron isolation [GeV];# muons ",  100, 0, 10);
   histContainer_["muonpuchiso"]    = fs->make<TH1F>("muonpuchiso",     ";Pileup charged hadron isolation [GeV];# muons ",  100, 0, 10);
   histContainer_["muonneuthadiso"] = fs->make<TH1F>("muonneuthadiso",  ";Neutral hadron isolation [GeV];# muons ",  100, 0, 10);
   histContainer_["muonphotoniso"]  = fs->make<TH1F>("muonphotoniso",   ";Photon isolation [GeV];# muons ",  100, 0, 10);
-  histContainer2d_["muonneutreliso"] = fs->make<TH2F>("muonneutreliso",  ";# vertices;Neutral relative isolation;# muons ",100,0,100,100, 0, 1.0);
-  histContainer2d_["muonpuchreliso"] = fs->make<TH2F>("muonpuchreliso",  ";# vertices;Pileup charged relative isolation;# muons ",100,0,100,100, 0, 1.0);
   histContainer_["nselmuons"]      = fs->make<TH1F>("nselmuons",       ";# reconstructed muons;Events",              5, 0.,5.);
 
   histContainer_["nrecoelectrons"]    = fs->make<TH1F>("nrecoelectrons",  ";# reconstructed electrons;Events",         5, 0., 5.);
   histContainer_["electronpt"]        = fs->make<TH1F>("electronpt",      ";Transverse momentum [GeV];# electrons",    100, 0., 300.);
   histContainer_["electroneta"]       = fs->make<TH1F>("electroneta",     ";Pseudo-rapidity;#electrons",               100, 0., 3.);
+  histContainer_["electronchreliso"]   = fs->make<TH1F>("electronchreliso",       ";Relative charged hadron isolation;# electrons ",  100, 0, 0.1);
+  histContainer_["electronchiso"]      = fs->make<TH1F>("electronchiso",       ";Charged hadron isolation [GeV];# electrons ",  100, 0, 10);
+  histContainer_["electronpuchiso"]    = fs->make<TH1F>("electronpuchiso",     ";Pileup charged hadron isolation [GeV];# electrons ",  100, 0, 10);
+  histContainer_["electronneuthadiso"] = fs->make<TH1F>("electronneuthadiso",  ";Neutral hadron isolation [GeV];# electrons ",  100, 0, 10);
+  histContainer_["electronphotoniso"]  = fs->make<TH1F>("electronphotoniso",   ";Photon isolation [GeV];# electrons ",  100, 0, 10);
   histContainer_["nselelectrons"]     = fs->make<TH1F>("nselelectrons",   ";# selected electrons;Events", 5, 0., 5.);
 
   histContainer_["nrecojets"]      = fs->make<TH1F>("nrecojets",   ";#reconstructed jets;Events", 50, 0., 50.);
@@ -527,7 +533,7 @@ MiniAnalyzer::beginJob()
   
   histContainer_["metpt"] = fs->make<TH1F>("metpt",    ";Missing transverse energy [GeV];Events", 100, 0., 300.);
   histContainer_["metphi"] = fs->make<TH1F>("metphi",    ";Missing transverse energy #phi [rad];Events", 50, -3.2, 3.2);
-  histContainer_["dphimetmuon"] = fs->make<TH1F>("dphimetmuon",    ";#Delta#phi(MET,#mu) [rad];Events", 50, -3.2, 3.2);
+  histContainer_["dphimetlepton"] = fs->make<TH1F>("dphimetlepton",    ";#Delta#phi(MET,lepton) [rad];Events", 50, -3.2, 3.2);
  
   histContainer_["mt_3"] = fs->make<TH1F>("mt_3",    ";Transverse mass [GeV]; Events", 100, 0., 200.);
   histContainer_["mt_4"] = fs->make<TH1F>("mt_4",    ";Transverse mass [GeV]; Events", 100, 0., 200.);
