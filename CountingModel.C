@@ -11,14 +11,15 @@ using namespace RooStats;
 
 //gROOT->Reset();
 
-void CountingModel(  int nobs = 23232,           	// number of observed events
-		     double b = 19496,           	// number of background events
-                     double xec = 424.5,         	// cross-section
+void CountingModel(  int nobs = 11590,           	// number of observed events
+		     double b = -11304,           	// number of background events
+//                     double xec = 424.5,         	// cross-section
                      double A = 0.088,          	// Acceptance
-                     double E = 0.088,         		// sfficiency
+                     double E = 0.224,         		// sfficiency
+                     double E3 = 0.3415,         		// sfficiency
                      double L = 100,               	// Lomonisty
                      double sigmab = 0.3,          	// relative uncertainty in b
-                     double sigmaxec = 0.177,      	// relative uncertainty in xec
+//                     double sigmaxec = 0.177,      	// relative uncertainty in xec
                      double sigmaA = 0.0014,      	// relative uncertainty in A
                      double sigmaE = 0.013,       	// relative uncertainty in E
                      double sigmaL = 0.025,         	// relative uncertainty in L
@@ -27,20 +28,21 @@ void CountingModel(  int nobs = 23232,           	// number of observed events
    RooWorkspace w("w");
 
 // make Poisson model * Gaussian constraint
-   w.factory("prod:exp(xec[424.5],A[0.088,0,100000],E[0.224,0,100000],L[100,0,100000])"); 
-   w.factory("sum:nexp(exp,b[19496,0,100000])"); 
-//   w.factory("sum:nexp(s[23232,0,100000],b[19496,0,100000])"); 
+   w.factory("prod:exp(A[0.088,0,100000],E[0.224,0,100000],E3[0.3415,0,100000],L[100,0,100000])"); 
+//   w.factory("sum:nexp(xec[23232,0,100000],b[-19496,0,100000])"); 
+   w.factory("sum:nexp(s[11590,0,100000],b[-11304,0,100000])"); 
 
 // Poisson of (n | s+b)
    w.factory("Poisson:pdf(nobs[0,1000000],nexp)");
 //   w.factory("Gaussian:constraint(b0[19496,100000],b,sigmab[0.3])");
-   w.factory("Gaussian:constraint(b0[19496,100000],b,sigmab[0.3])");
-   w.factory("Gaussian:constraint_xec(xec0[424.5,100000],xec,sigmaxec[0.177])");
+   w.factory("Gaussian:constraint(b0[-11304,100000],b,sigmab[0.3])");
+//   w.factory("Gaussian:constraint_xec(xec0[424.5,100000],xec,sigmaxec[0.177])");
    w.factory("Gaussian:constraint_acc(A0[0.088,100000],A,sigmaA[0.0014])");
    w.factory("Gaussian:constraint_eff(E0[0.224,100000],E,sigmaE[0.013])");
    w.factory("Gaussian:constraint_lum(L0[100,100000],L,sigmaL[0.025])");
    w.factory("Gaussian:constraint_obs(nobs0[23232,100000],nobs,sigmanobs[0.0093])");
-   w.factory("PROD:model(pdf,constraint,constraint_xec,constraint_acc,constraint_eff,constraint_lum,constraint_obs)"); 
+   w.factory("PROD:model(pdf,constraint,constraint_acc,constraint_eff,constraint_lum,constraint_obs)"); 
+//   w.factory("PROD:model(nexp,1/exp)"); 
 
 
 
@@ -48,9 +50,9 @@ void CountingModel(  int nobs = 23232,           	// number of observed events
    w.var("b0")->setConstant(true); // needed for being treated as global observables
    w.var("sigmab")->setVal(sigmab*b); 
 
-   w.var("xec0")->setVal(xec);
-   w.var("xec0")->setConstant(true); // needed for being treated as global observables
-   w.var("sigmaxec")->setVal(sigmaxec*xec);
+//   w.var("xec0")->setVal(xec);
+//   w.var("xec0")->setConstant(true); // needed for being treated as global observables
+//   w.var("sigmaxec")->setVal(sigmaxec*xec);
 
    w.var("A0")->setVal(A);
    w.var("A0")->setConstant(true); // needed for being treated as global observables
@@ -88,7 +90,7 @@ void CountingModel(  int nobs = 23232,           	// number of observed events
    mc.SetSnapshot(*w.var("xec"));
    mc.SetGlobalObservables(*w.var("b0"));
 
-   mc.SetGlobalObservables(*w.var("xec0"));
+//   mc.SetGlobalObservables(*w.var("xec0"));
    mc.SetGlobalObservables(*w.var("A0"));
    mc.SetGlobalObservables(*w.var("E0"));
    mc.SetGlobalObservables(*w.var("L0"));
@@ -103,6 +105,7 @@ void CountingModel(  int nobs = 23232,           	// number of observed events
 
 // make data set with the namber of observed events
 RooDataSet data("data","", *w.var("nobs"));
+//RooDataSet data("data","", *w.var("nobs"));
    w.var("nobs")->setVal(nobs);
    data.add(*w.var("nobs") );
 // import data set in workspace and save it in a file
