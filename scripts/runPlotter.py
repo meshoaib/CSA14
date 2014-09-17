@@ -22,11 +22,13 @@ def getCMSPfn(path, protocol='rfio'):
     return cmsf.pfn
 
 def getNormalization(tfile):
-    cutflow=tfile.Get('demo/cutflow')
-    try:
-        nevents=cutflow.GetBinContent(1)
-    except:
-        nevents=0
+    hnames=['demo/cutflow','cutflow']
+    for h in hnames:
+        cutflow=tfile.Get(h)
+        try:
+            nevents=cutflow.GetBinContent(1)
+        except:
+            nevents=0
     return nevents
 
 def openTFile(url):

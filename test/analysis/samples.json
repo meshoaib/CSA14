@@ -26,8 +26,8 @@
       "data":[
         {"dtag":"chargediso_wjets_PU20bx25", "split":1, "xsec":50100, "br":[ 1.0 ]}
       ]
-},	
- {
+    },	
+    {
       "tag":"DY+jets",
       "isdata":false,
       "color":3,
@@ -36,8 +36,8 @@
       "data":[
         {"dtag":"chargediso_DY_PU20bx25", "split":1, "xsec":4746, "br":[ 1.0 ]}
       ]
-},
- {
+    },
+    {
       "tag":"t#bar{t}",
       "isdata":false,
       "color":2,
@@ -46,7 +46,6 @@
       "data":[
         {"dtag":"chargediso_TT_PU20bx25_v2", "split":1, "xsec":424.5, "br":[ 1.0 ]}
       ]
-}
-
+    }
   ]
 }

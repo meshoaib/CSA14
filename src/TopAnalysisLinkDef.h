@@ -9,6 +9,7 @@
 #pragma link off all typedef;
 
 #pragma link C++ function ReadTree;
+#pragma link C++ function RunOverSamples;
 #pragma link C++ function attachToMiniEventTree;
 #pragma link C++ function createMiniEventTree;
 

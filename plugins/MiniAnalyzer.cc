@@ -88,6 +88,7 @@ private:
   edm::EDGetTokenT<pat::ElectronCollection> electronToken_;
   edm::EDGetTokenT<pat::JetCollection> jetToken_;
   edm::EDGetTokenT<pat::METCollection> metToken_;
+  edm::EDGetTokenT<pat::PackedCandidateCollection> pfToken_;
 
   //TH1F* fHistnew_Histo;
 
@@ -117,7 +118,8 @@ MiniAnalyzer::MiniAnalyzer(const edm::ParameterSet& iConfig) :
   muonToken_(consumes<pat::MuonCollection>(iConfig.getParameter<edm::InputTag>("muons"))),
   electronToken_(consumes<pat::ElectronCollection>(iConfig.getParameter<edm::InputTag>("electrons"))),
   jetToken_(consumes<pat::JetCollection>(iConfig.getParameter<edm::InputTag>("jets"))),
-  metToken_(consumes<pat::METCollection>(iConfig.getParameter<edm::InputTag>("mets")))
+  metToken_(consumes<pat::METCollection>(iConfig.getParameter<edm::InputTag>("mets"))),
+ pfToken_(consumes<pat::PackedCandidateCollection>(iConfig.getParameter<edm::InputTag>("pfCands")))
 {
   //now do what ever initialization is needed
 
@@ -459,7 +461,14 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	}
     }
   
-  
+    edm::Handle<pat::PackedCandidateCollection> pfs;
+    iEvent.getByToken(pfToken_, pfs);
+    // now loop on pf candidates
+    for (unsigned int i = 0, n = pfs->size(); i < n; ++i) {
+        const pat::PackedCandidate &pf = (*pfs)[i];
+        if (pf.fromPV() > 0 && pf.charge()!= 0) {}
+    }
+
 }
 
 

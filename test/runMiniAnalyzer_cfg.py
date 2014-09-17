@@ -4,9 +4,11 @@ process = cms.Process("Demo")
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(3000000))
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10000))
 
 
+from UserCode.TopAnalysis.csa14.TT_PU_S14_V5_cfi import source as TT_source
+#from UserCode.TopAnalysis.csa14.TT_PU_S14_V7_cfi import source as TT_source
 #from UserCode.TopAnalysis.csa14.TT_PU_v2_cfi import source as TT_source
 #from UserCode.TopAnalysis.csa14.TT_PU_S14_cfi import source as TT_source
 #from UserCode.TopAnalysis.csa14.TTJets_MG_PU20bx25_POSTLS170_cfi import source as TT_source
@@ -21,7 +23,7 @@ process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(3000000))
 #from UserCode.TopAnalysis.csa14.QCD_470_600_MuEnriched_pythia8_cfi import source as TT_source
 #from UserCode.TopAnalysis.csa14.QCD_600_800_MuEnriched_pythia8_cfi import source as TT_source
 #from UserCode.TopAnalysis.csa14.QCD_800_1000_MuEnriched_pythia8_cfi import source as TT_source
-from UserCode.TopAnalysis.csa14.QCD_1000_MuEnriched_pythia8_cfi import source as TT_source
+#from UserCode.TopAnalysis.csa14.QCD_1000_MuEnriched_pythia8_cfi import source as TT_source
 #from UserCode.TopAnalysis.csa14.QCD_1000_1400_Tune4C_pythia8_cfi import source as TT_source
 #from UserCode.TopAnalysis.csa14.QCD_1400_1800_Tune4C_pythia8_cfi import source as TT_source
 #from UserCode.TopAnalysis.csa14.QCD_1800_Tune4C_pythia8_cfi import source as TT_source
@@ -43,6 +45,8 @@ process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 
 #tfileservice
 process.TFileService = cms.Service("TFileService",
+        fileName = cms.string("charged_combinediso_TT_PU_S14_V5.root")
+#        fileName = cms.string("chargediso_TT_PU_S14_V7.root")
 #        fileName = cms.string("chargediso_TT_PU20bx25_v2.root")
 #        fileName = cms.string("chargediso_TT_S14_PU40bx50.root")
 #                                   fileName = cms.string('TTJets_MG_PU20bx25_POSTLS170.root')
@@ -57,7 +61,7 @@ process.TFileService = cms.Service("TFileService",
 #        fileName = cms.string("chargediso_QCD_470_600_MuEnriched_PU20bx25.root")
 #        fileName = cms.string("chargediso_QCD_600_800_MuEnriched_PU20bx25.root")
 #        fileName = cms.string("chargediso_QCD_800_1000_MuEnriched_PU20bx25.root")
-        fileName = cms.string("chargediso_QCD_1000_MuEnriched_PU20bx25.root")
+#        fileName = cms.string("chargediso_QCD_1000_MuEnriched_PU20bx25.root")
 #        fileName = cms.string("QCD_1000_1400_Tune4C_PU20bx25.root")
 #        fileName = cms.string("QCD_1400_1800_Tune4C.root")
 #        fileName = cms.string("QCD_1800_Tune4C.root")

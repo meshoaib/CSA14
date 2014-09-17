@@ -7,6 +7,7 @@ demo = cms.EDAnalyzer("MiniAnalyzer",
                       muons       = cms.InputTag("slimmedMuons"),
                       electrons   = cms.InputTag("slimmedElectrons"),
                       jets        = cms.InputTag("slimmedJets"),
-                      mets        = cms.InputTag("slimmedMETs")
+                      mets        = cms.InputTag("slimmedMETs"),
+		      pfCands = cms.InputTag("packedPFCandidates")
                       )
 

@@ -7,9 +7,11 @@
 #include <iostream>
 #include <algorithm>
 
-bool sortBySignificance(std::pair<int,float> a,std::pair<int,float> b)
+bool sortBySignificance(std::pair<int,std::pair<float,float> > a,
+			std::pair<int,std::pair<float,float> > b)
 {
-  return (a.second>b.second);
+  if( a.second.first>0 || b.second.first>0 ) return (a.second.first>b.second.first);
+  return (a.second.second>b.second.second);
 }
 
 void ReadTree(TString filename,TString output)
@@ -32,27 +34,27 @@ void ReadTree(TString filename,TString output)
   csvbjetcutflow->GetXaxis()->SetBinLabel(6,"4j,#geq2b");
   TH1F *ssvbjetcutflow = (TH1F *)csvbjetcutflow->Clone("ssvbjetcutflow");
 
-  TH1F *disvtx_3j_leading     = new TH1F("disvtx_3j_leading",";lxy;Events" ,100,0.,10.);
+  TH1F *disvtx_3j_leading     = new TH1F("disvtx_3j_leading",";lxy;Events" ,25,0.,10.);
   TH1F *disvtx_3j_nextleading = (TH1F *)disvtx_3j_leading->Clone("disvtx_4j_nextleading");
   TH1F *disvtx_4j_leading     = (TH1F *)disvtx_3j_leading->Clone("disvtx_4j_leading");
   TH1F *disvtx_4j_nextleading = (TH1F *)disvtx_3j_leading->Clone("disvtx_4j_nextleading");
 
-  TH1F *lxyz_sig_3j_leading     = new TH1F("lxyz_sig_3j_leading",";lxyz_sig;Events" ,100,0.,10.);
+  TH1F *lxyz_sig_3j_leading     = new TH1F("lxyz_sig_3j_leading",";lxyz_sig;Events" ,25,0.,20.);
   TH1F *lxyz_sig_3j_nextleading = (TH1F *)lxyz_sig_3j_leading->Clone("lxyz_sig_3j_nextleading");
   TH1F *lxyz_sig_4j_leading     = (TH1F *)lxyz_sig_3j_leading->Clone("lxyz_sig_4j_leading");
   TH1F *lxyz_sig_4j_nextleading = (TH1F *)lxyz_sig_3j_leading->Clone("lxyz_sig_4j_nextleading");
 
-  TH1F *vertexmass_3j_leading     = new TH1F("vertexmass_3j_leading",";vertexmass;Events" ,100,0.,10.);
+  TH1F *vertexmass_3j_leading     = new TH1F("vertexmass_3j_leading",";vertexmass;Events" ,25,0.,6.);
   TH1F *vertexmass_3j_nextleading = (TH1F *)vertexmass_3j_leading->Clone("vertexmass_3j_nextleading");
   TH1F *vertexmass_4j_leading     = (TH1F *)vertexmass_3j_leading->Clone("vertexmass_4j_leading");
   TH1F *vertexmass_4j_nextleading = (TH1F *)vertexmass_3j_leading->Clone("vertexmass_3j_nextleading");
 
-  TH1F *jetpt_3j_leading     = new TH1F("jetpt_3j_leading",";pt;Events" ,100,0.,300.);
+  TH1F *jetpt_3j_leading     = new TH1F("jetpt_3j_leading",";pt;Events" ,25,0.,300.);
   TH1F *jetpt_3j_nextleading = (TH1F *)jetpt_3j_leading->Clone("jetpt_3j_nextleading");
   TH1F *jetpt_4j_leading     = (TH1F *)jetpt_3j_leading->Clone("jetpt_4j_leading");
   TH1F *jetpt_4j_nextleading = (TH1F *)jetpt_3j_leading->Clone("jetpt_4j_nextleading");
 
-  TH1F *jeteta_3j_leading     = new TH1F("jeteta_3j_leading",";eta;Events" ,100,0.,3.);
+  TH1F *jeteta_3j_leading     = new TH1F("jeteta_3j_leading",";eta;Events" ,25,0.,3.);
   TH1F *jeteta_3j_nextleading = (TH1F *) jeteta_3j_leading->Clone("jeteta_3j_nextleading");
   TH1F *jeteta_4j_leading     = (TH1F *) jeteta_3j_leading->Clone("jeteta_4j_leading");
   TH1F *jeteta_4j_nextleading = (TH1F *) jeteta_3j_leading->Clone("jeteta_4j_nextleading");
@@ -64,7 +66,7 @@ void ReadTree(TString filename,TString output)
   TFile *f = TFile::Open(filename);
 
   //get the original number of events in the dataset
-  TH1F *origCutFlow=(TH1F *)f->Get("demo/cuflow");
+  TH1F *origCutFlow=(TH1F *)f->Get("demo/cutflow");
   if(origCutFlow) {
     Float_t origEvents=origCutFlow->GetBinContent(1);
     cutflow->SetBinContent(1,origEvents);
@@ -82,7 +84,7 @@ void ReadTree(TString filename,TString output)
 
       //select jets
       uint32_t nJets(0), nCSVMtags(0), nSSVMtags(0);
-      std::vector< std::pair<int,float> > vlxyz_sig;
+      std::vector< std::pair<int,std::pair<float,float> > > vlxyz_sig;
       for (int k=0; k<ev.nj;k++)
 	{
 	  //check pt and eta of this jet
@@ -98,7 +100,8 @@ void ReadTree(TString filename,TString output)
 	      if (csv>0.679) nCSVMtags++;
               if(lxyz>0) nSSVMtags++;
 	      {
-		vlxyz_sig.push_back( std::pair<int,float>(k,lxyz_sig) );
+		std::pair<float,float> jetKinematics(lxyz_sig,pt);
+		vlxyz_sig.push_back( std::pair<int,std::pair<float,float> >(k,jetKinematics) );
 	      }
 	    }
 	}
@@ -140,16 +143,20 @@ void ReadTree(TString filename,TString output)
 	  //most significantly displaced vertex
 	  if(v==0) {
 	    if(nJets >=3){
-	      disvtx_3j_leading->Fill(lxyz);
-	      lxyz_sig_3j_leading->Fill(lxyz_sig);
-	      vertexmass_3j_leading->Fill(vtxmass);
+	      if(lxyz>0){
+		disvtx_3j_leading->Fill(lxyz);
+		lxyz_sig_3j_leading->Fill(lxyz_sig);
+		vertexmass_3j_leading->Fill(vtxmass);
+	      }
 	      jetpt_3j_leading->Fill(pt);
 	      jeteta_3j_leading->Fill(fabs(eta));}
 
 	    if(nJets >=4){
-	      disvtx_4j_leading->Fill(lxyz);
-	      lxyz_sig_4j_leading->Fill(lxyz_sig);
-	      vertexmass_4j_leading->Fill(vtxmass);
+	      if(lxyz>0){
+		disvtx_4j_leading->Fill(lxyz);
+		lxyz_sig_4j_leading->Fill(lxyz_sig);
+		vertexmass_4j_leading->Fill(vtxmass);
+	      }
 	      jetpt_4j_leading->Fill(pt);
 	      jeteta_4j_leading->Fill(fabs(eta));}
 	  }
@@ -157,16 +164,20 @@ void ReadTree(TString filename,TString output)
 	  //second most significantly displaced vertex
 	  if(v==1) {
 	    if(nJets >=3){
-	      disvtx_3j_nextleading->Fill(lxyz);
-	      lxyz_sig_3j_nextleading->Fill(lxyz_sig);
-	      vertexmass_3j_nextleading->Fill(vtxmass);
+	      if(lxyz>0){
+		disvtx_3j_nextleading->Fill(lxyz);
+		lxyz_sig_3j_nextleading->Fill(lxyz_sig);
+		vertexmass_3j_nextleading->Fill(vtxmass);
+	      }
 	      jetpt_3j_nextleading->Fill(pt);
 	      jeteta_3j_nextleading->Fill(fabs(eta));}
 
 	    if(nJets >=4){
-	      disvtx_4j_nextleading->Fill(lxyz);
-	      lxyz_sig_4j_nextleading->Fill(lxyz_sig);
-	      vertexmass_4j_nextleading->Fill(vtxmass);
+	      if(lxyz>0){
+		disvtx_4j_nextleading->Fill(lxyz);
+		lxyz_sig_4j_nextleading->Fill(lxyz_sig);
+		vertexmass_4j_nextleading->Fill(vtxmass);
+	      }
 	      jetpt_4j_nextleading->Fill(pt);
 	      jeteta_4j_nextleading->Fill(fabs(eta));}
 	  }	
@@ -214,3 +225,26 @@ void ReadTree(TString filename,TString output)
   fOut->Close();
 }
 
+
+void RunOverSamples(TString output)
+{
+  TString files[]={
+    "chargediso_DY_PU20bx25.root",
+    "chargediso_QCD_1000_MuEnriched_PU20bx25.root",
+    "chargediso_QCD_120_170_MuEnriched_PU20bx25.root",
+    "chargediso_QCD_170_300_MuEnriched_PU20bx25.root",
+    "chargediso_QCD_300_470_MuEnriched_PU20bx25.root",
+    "chargediso_QCD_470_600_MuEnriched_PU20bx25.root",
+    "chargediso_QCD_600_800_MuEnriched_PU20bx25.root",
+    "chargediso_QCD_800_1000_MuEnriched_PU20bx25.root",
+    "chargediso_QCD_80_120_MuEnriched_PU20bx25.root",
+    "chargediso_TT_PU20bx25_v2.root",
+    "chargediso_wjets_PU20bx25.root"
+  };
+  for(size_t i=0; i<sizeof(files)/sizeof(TString); i++)
+    {
+      ReadTree(files[i],output);
+    }
+  
+
+}
