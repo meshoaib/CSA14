@@ -32,6 +32,9 @@ void createMiniEventTree(TTree *t,MiniEvent_t &ev)
   t->Branch("met_pt",    &ev.met_pt,    "met_pt/F");
   t->Branch("met_phi",   &ev.met_phi,   "met_phi/F");
   t->Branch("mt",        &ev.mt,        "mt/F");
+  t->Branch("chmet_pt",    &ev.chmet_pt,    "chmet_pt/F");
+  t->Branch("chmet_phi",   &ev.chmet_phi,   "chmet_phi/F");
+  t->Branch("chmt",        &ev.chmt,        "chmt/F");
 }
 
 //
@@ -65,4 +68,7 @@ void attachToMiniEventTree(TTree *t,MiniEvent_t &ev)
   t->SetBranchAddress("met_pt",    &ev.met_pt);
   t->SetBranchAddress("met_phi",   &ev.met_phi);
   t->SetBranchAddress("mt",        &ev.mt);
+  t->SetBranchAddress("chmet_pt",    &ev.chmet_pt);
+  t->SetBranchAddress("chmet_phi",   &ev.chmet_phi);
+  t->SetBranchAddress("chmt",        &ev.chmt);
 }

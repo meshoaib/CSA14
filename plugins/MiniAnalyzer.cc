@@ -42,6 +42,7 @@
 
 #include "UserCode/TopAnalysis/interface/MiniEvent.h"
 
+#include "TLorentzVector.h"
 #include "TH1.h"
 #include "TH1F.h"
 #include "TH2F.h"
@@ -360,7 +361,7 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   //
   // JETS
   //
-  uint32_t nCSVMtags(0);
+  uint32_t nSecVtx(0);
   edm::Handle<pat::JetCollection> jets;
   iEvent.getByToken(jetToken_, jets);
   std::vector<const pat::Jet *> selectedJets;
@@ -386,17 +387,20 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	  {
 	    selectedJets.push_back( &j );
 	    float csv=j.bDiscriminator("combinedSecondaryVertexBJetTags");
-	    if(csv>0.679) nCSVMtags++;
 	    histContainer_["jetcsv"]->Fill(csv);
 	    histContainer_["jetpileupid"]->Fill(j.userFloat("pileupJetId:fullDiscriminant"));
 	    float svtxmass=j.userFloat("vtxMass");
-	    histContainer_["jetsecvtxmass"]->Fill(svtxmass);
 	    int vtxNtracks=j.userFloat("vtxNtracks");
-	    histContainer_["jetvtxNtracks"]->Fill(vtxNtracks);
 	    float vtx3DVal=j.userFloat("vtx3DVal");
-	    histContainer_["jetvtx3DVal"]->Fill(vtx3DVal);
 	    float vtx3DSig=j.userFloat("vtx3DSig");
-	    histContainer_["jetvtx3DSig"]->Fill(vtx3DSig);
+	    if(svtxmass>0) 
+	    {
+	      nSecVtx++;
+	      histContainer_["jetsecvtxmass"]->Fill(svtxmass);
+	      histContainer_["jetvtxNtracks"]->Fill(vtxNtracks);
+	      histContainer_["jetvtx3DVal"]->Fill(vtx3DVal);
+	      histContainer_["jetvtx3DSig"]->Fill(vtx3DSig);
+	    }
 
 	    ev_.j_pt[ev_.nj]=j.pt();
 	    ev_.j_eta[ev_.nj]=j.eta();
@@ -428,11 +432,29 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   float dphi_met_lepton = deltaPhi(leptonphi, metphi); // use the function to restrict to the 0,pi range
   float mt=sqrt(2*leptonpt*metpt*(1-cos(dphi_met_lepton)));
 
+  //charged met
+  edm::Handle<pat::PackedCandidateCollection> pfs;
+  iEvent.getByToken(pfToken_, pfs);
+  TLorentzVector chMet(0,0,0,0);
+  float chHT(0);
+  for (unsigned int i = 0, n = pfs->size(); i < n; ++i) {
+    //require not to be associated to other PVs and to be charged
+    const pat::PackedCandidate &pf = (*pfs)[i];
+    if (pf.fromPV() == 0 || pf.charge()== 0) continue;
+    chMet -= TLorentzVector(pf.px(),pf.py(),0,pf.pt());
+    chHT += pf.pt();
+  }
+  float dphi_chmet_lepton = deltaPhi(leptonphi, chMet.Phi()); // use the function to restrict to the 0,pi range
+  float chmt=sqrt(2*leptonpt*chMet.Pt()*(1-cos(dphi_chmet_lepton)));
+
   //save to ttree
   ev_.met_pt=metpt;
   ev_.met_phi=metphi;
   ev_.mt=mt;
-
+  ev_.chmet_pt=chMet.Pt();
+  ev_.chmet_phi=chMet.Phi();
+  ev_.chmt=chmt;
+  
   //
   // FINAL SELECTION PLOTS
   //
@@ -441,6 +463,12 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       histContainer_["cutflow"]->Fill(3);
       if(selectedElectrons.size()==1)  histContainer_["ecutflow"]->Fill(3);
       if(selectedMuons.size()==1)      histContainer_["mucutflow"]->Fill(3);  
+      histContainer_["mt2"]->Fill(mt);
+      histContainer_["metpt2"]->Fill(metpt);
+      histContainer_["metphi2"]->Fill(metphi);
+      histContainer_["chmt2"]->Fill(chmt);
+      histContainer_["chmetpt2"]->Fill(chMet.Pt());
+      histContainer_["chmetphi2"]->Fill(chMet.Phi()); 
       tree_->Fill();
     }
   if(selectedJets.size()>=3) 
@@ -448,60 +476,42 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       histContainer_["cutflow"]->Fill(4);
       if(selectedElectrons.size()==1)  histContainer_["ecutflow"]->Fill(4);
       if(selectedMuons.size()==1)      histContainer_["mucutflow"]->Fill(4);  
-      histContainer_["mt_3"]->Fill(mt);
-    }
+      histContainer_["mt3"]->Fill(mt);
+      histContainer_["metpt3"]->Fill(metpt);
+      histContainer_["metphi3"]->Fill(metphi);
+      histContainer_["chmt3"]->Fill(chmt);
+      histContainer_["chmetpt3"]->Fill(chMet.Pt());
+      histContainer_["chmetphi3"]->Fill(chMet.Phi()); 
+     }
   if(selectedJets.size()>=4) 
     {
-      histContainer_["mt_4"]->Fill(mt);
       histContainer_["cutflow"]->Fill(5);
       if(selectedElectrons.size()==1)  histContainer_["ecutflow"]->Fill(5);
       if(selectedMuons.size()==1)      histContainer_["mucutflow"]->Fill(5);  
-      histContainer_["ncsvmjets"]->Fill(nCSVMtags);
+      histContainer_["mt4"]->Fill(mt);
+      histContainer_["metpt4"]->Fill(metpt);
+      histContainer_["metphi4"]->Fill(metphi);
+      histContainer_["chmt4"]->Fill(chmt);
+      histContainer_["chmetpt4"]->Fill(chMet.Pt());
+      histContainer_["chmetphi4"]->Fill(chMet.Phi()); 
+      histContainer_["nsvtx"]->Fill(nSecVtx);
       histContainer_["nvertices"]->Fill(vertices->size());
-      if(nCSVMtags>=1) 
+
+      if(nSecVtx>=1)
 	{
 	  histContainer_["cutflow"]->Fill(6);
 	  if(selectedElectrons.size()==1)  histContainer_["ecutflow"]->Fill(6);
 	  if(selectedMuons.size()==1)      histContainer_["mucutflow"]->Fill(6);  
-	  histContainer_["mt_41b"] ->Fill(mt);
 	}
-      if(nCSVMtags>=2) 
+      if(nSecVtx>=2)
 	{
 	  histContainer_["cutflow"]->Fill(7);
 	  if(selectedElectrons.size()==1)  histContainer_["ecutflow"]->Fill(7);
 	  if(selectedMuons.size()==1)      histContainer_["mucutflow"]->Fill(7);  
-	  histContainer_["mt_42b"] ->Fill(mt);
-	  histContainer_["metpt"]->Fill(metpt);
-	  histContainer_["metphi"] ->Fill(metphi);
-	  histContainer_["dphimetlepton"]->Fill(dphi_met_lepton );
 	}
     }
-//  float pfpt=0.0;
-//int id = 0.0;
-    edm::Handle<pat::PackedCandidateCollection> pfs;
-    iEvent.getByToken(pfToken_, pfs);
-    // now loop on pf candidates
-    for (unsigned int i = 0, n = pfs->size(); i < n; ++i) {
-        const pat::PackedCandidate &pf = (*pfs)[i];
-        if (pf.fromPV() > 0 && pf.charge()!= 0) 
-
-histContainer_["pfpt"]->Fill(pf.pt());
-histContainer_["pfpx"]->Fill(pf.px());
-histContainer_["pfpy"]->Fill(pf.py());
-histContainer_["pfpz"]->Fill(pf.pz());
-histContainer_["sum_pt"]->Fill(sqrt(pow(pf.px(),2)+pow(pf.py(),2)+pow(pf.pz(),2)));
+  
 }
-}
-/*
-if (pf.pdgId() == 13){
-		pfpt = pf.pt();}
-		cout<<"ID PF Candidates: "<<pf.pdgId()<<endl; //}
-		cout<<"Pt of PF Candidates: "<<pfpt<<endl; 
-		cout<<"All is well: "<<endl;}*/
-//   }
-//}
-//
-
 
 // ------------ method called once each job just before starting event loop  ------------
 void 
@@ -553,26 +563,22 @@ MiniAnalyzer::beginJob()
   histContainer_["jetvtx3DVal"]  = fs->make<TH1F>("jetvtx3DVal", ";vtx3DVal [cm];#jets", 100, -5., 5.);
   histContainer_["jetvtx3DSig"]  = fs->make<TH1F>("jetvtx3DSig", ";vtx3DSig;#jets", 100, 0., 5.);
   histContainer_["nseljets"]       = fs->make<TH1F>("nseljets",    ";#selected jets;Events", 6, 3., 10.);
-  histContainer_["ncsvmjets"]      = fs->make<TH1F>("ncsvmjets",    ";b-tagged jets (CSVM);Events", 10, 0., 10.);
+  histContainer_["nsvtx"]         = fs->make<TH1F>("nsvtx",    ";# secondary vertices;Events",5, 0., 5.);
   
-  histContainer_["metpt"] = fs->make<TH1F>("metpt",    ";Missing transverse energy [GeV];Events", 100, 0., 300.);
-  histContainer_["metphi"] = fs->make<TH1F>("metphi",    ";Missing transverse energy #phi [rad];Events", 50, -3.2, 3.2);
-  histContainer_["dphimetlepton"] = fs->make<TH1F>("dphimetlepton",    ";#Delta#phi(MET,lepton) [rad];Events", 50, -3.2, 3.2);
+  for(size_t ijet=2; ijet<=4; ijet++)
+    for(size_t imet=0; imet<2; imet++)
+      {
+	TString prefix(imet==0 ? "": "ch");
+	TString postfix(""); postfix += ijet;
+	histContainer_[(prefix+"metpt"+postfix).Data()] = fs->make<TH1F>(prefix+"metpt"+postfix,    ";"+prefix+" Missing transverse energy [GeV];Events", 100, 0., 300.);
+	histContainer_[(prefix+"metphi"+postfix).Data()] = fs->make<TH1F>(prefix+"metphi"+postfix,    ";"+prefix+" Missing transverse energy #phi [rad];Events", 50, -3.2, 3.2);
+	histContainer_[(prefix+"mt"+postfix).Data()] = fs->make<TH1F>(prefix+"mt"+postfix,    ";"+prefix+" Transverse mass [GeV]; Events", 100, 0., 200.);
+      }
  
-  histContainer_["mt_3"] = fs->make<TH1F>("mt_3",    ";Transverse mass [GeV]; Events", 100, 0., 200.);
-  histContainer_["mt_4"] = fs->make<TH1F>("mt_4",    ";Transverse mass [GeV]; Events", 100, 0., 200.);
-  histContainer_["mt_41b"] = fs->make<TH1F>("mt_41b",    ";Transverse mass [GeV]; Events", 100, 0., 200.);
-  histContainer_["mt_42b"] = fs->make<TH1F>("mt_42b",    ";Transverse mass [GeV]; Events", 100, 0., 200.);
-
-  histContainer_["pfpt"]         = fs->make<TH1F>("pfpt",          ";Transverse momentum [GeV];# pfpacked",         100, 0., 300.);
-  histContainer_["pfpx"]         = fs->make<TH1F>("pfpx",          ";X_Component_Transverse momentum [GeV];# pfpacked",         100, 0., 300.);
-  histContainer_["pfpy"]         = fs->make<TH1F>("pfpy",          ";Y_Component_Transverse momentum [GeV];# pfpacked",         100, 0., 300.);
-  histContainer_["pfpz"]         = fs->make<TH1F>("pfpz",          ";Z_Component_Transverse momentum [GeV];# pfpacked",         100, 0., 300.);
-  histContainer_["sum_pt"]         = fs->make<TH1F>("sum_pt",          ";SUM_Transverse momentum [GeV];# pfpacked",         100, 0., 300.);
   //instruct ROOT to compute the uncertainty from the square root of weights
   //http://root.cern.ch/root/html/TH1.html#TH1:Sumw2
-//  for(std::unordered_map<std::string,TH1F*>::iterator it=histContainer_.begin();   it!=histContainer_.end();   it++) it->second->Sumw2();
-//  for(std::unordered_map<std::string,TH2F*>::iterator it=histContainer2d_.begin(); it!=histContainer2d_.end(); it++) it->second->Sumw2();
+  for(std::unordered_map<std::string,TH1F*>::iterator it=histContainer_.begin();   it!=histContainer_.end();   it++) it->second->Sumw2();
+  //  for(std::unordered_map<std::string,TH2F*>::iterator it=histContainer2d_.begin(); it!=histContainer2d_.end(); it++) it->second->Sumw2();
 
   //create a tree for the selected events
   tree_ = fs->make<TTree>("AnaTree", "AnaTree");
