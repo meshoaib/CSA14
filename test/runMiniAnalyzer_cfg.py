@@ -7,8 +7,8 @@ process.load("FWCore.MessageService.MessageLogger_cfi")
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10000))
 
 
-<<<<<<< HEAD
-from UserCode.TopAnalysis.csa14.TT_PU_S14_V5_cfi import source as TT_source
+#<<<<<<< HEAD
+#from UserCode.TopAnalysis.csa14.TT_PU_S14_V5_cfi import source as TT_source
 #from UserCode.TopAnalysis.csa14.TT_PU_S14_V7_cfi import source as TT_source
 #from UserCode.TopAnalysis.csa14.TT_PU_v2_cfi import source as TT_source
 #from UserCode.TopAnalysis.csa14.TT_PU_S14_cfi import source as TT_source
@@ -36,7 +36,7 @@ from UserCode.TopAnalysis.csa14.TT_PU_S14_V5_cfi import source as TT_source
 #from UserCode.TopAnalysis.csa14.QCD_800_1000_Tune4C_pythia8_cfi import source as TT_source 
 #from UserCode.TopAnalysis.csa14.QCD_80_120_Tune4C_pythia8_cfi import source as TT_source
 #from UserCode.TopAnalysis.csa14.QCD_120_170_Tune4C_pythia8_cfi import source as TT_source
-=======
+#=======
 from UserCode.TopAnalysis.csa14.TT_PU_v2_cfi import source as events_source
 #from UserCode.TopAnalysis.csa14.TT_PU_S14_cfi import source as events_source
 #from UserCode.TopAnalysis.csa14.TTJets_MG_PU20bx25_POSTLS170_cfi import source as events_source
@@ -63,7 +63,7 @@ from UserCode.TopAnalysis.csa14.TT_PU_v2_cfi import source as events_source
 #from UserCode.TopAnalysis.csa14.QCD_800_1000_Tune4C_pythia8_cfi import source as events_source 
 #from UserCode.TopAnalysis.csa14.QCD_80_120_Tune4C_pythia8_cfi import source as events_source
 #from UserCode.TopAnalysis.csa14.QCD_120_170_Tune4C_pythia8_cfi import source as events_source
->>>>>>> b32c9b8249b94e9257f9330212c10ab47d682abc
+#>>>>>>> b32c9b8249b94e9257f9330212c10ab47d682abc
 
 process.source=events_source
 
@@ -74,7 +74,7 @@ process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 
 #tfileservice
 process.TFileService = cms.Service("TFileService",
-        fileName = cms.string("charged_combinediso_TT_PU_S14_V5.root")
+        fileName = cms.string("pf_combinediso_TT_PU_S14_V5.root")
 #        fileName = cms.string("chargediso_TT_PU_S14_V7.root")
 #        fileName = cms.string("chargediso_TT_PU20bx25_v2.root")
 #        fileName = cms.string("chargediso_TT_S14_PU40bx50.root")
@@ -105,8 +105,9 @@ process.TFileService = cms.Service("TFileService",
 )
 
 #running sequence
-process.load('UserCode.TopAnalysis.myChargedPFJets_cfi')
+#process.load('UserCode.TopAnalysis.myChargedPFJets_cfi')
 process.load('UserCode.TopAnalysis.miniAnalyzer_cfi')
-process.p = cms.Path(process.myChargedPFJets*process.demo)
+#process.p = cms.Path(process.myChargedPFJets*process.demo)
+process.p = cms.Path(process.demo)
 
 

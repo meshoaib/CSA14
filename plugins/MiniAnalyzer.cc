@@ -476,16 +476,31 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	  histContainer_["dphimetlepton"]->Fill(dphi_met_lepton );
 	}
     }
-  
+//  float pfpt=0.0;
+//int id = 0.0;
     edm::Handle<pat::PackedCandidateCollection> pfs;
     iEvent.getByToken(pfToken_, pfs);
     // now loop on pf candidates
     for (unsigned int i = 0, n = pfs->size(); i < n; ++i) {
         const pat::PackedCandidate &pf = (*pfs)[i];
-        if (pf.fromPV() > 0 && pf.charge()!= 0) {}
-    }
+        if (pf.fromPV() > 0 && pf.charge()!= 0) 
 
+histContainer_["pfpt"]->Fill(pf.pt());
+histContainer_["pfpx"]->Fill(pf.px());
+histContainer_["pfpy"]->Fill(pf.py());
+histContainer_["pfpz"]->Fill(pf.pz());
+histContainer_["sum_pt"]->Fill(sqrt(pow(pf.px(),2)+pow(pf.py(),2)+pow(pf.pz(),2)));
 }
+}
+/*
+if (pf.pdgId() == 13){
+		pfpt = pf.pt();}
+		cout<<"ID PF Candidates: "<<pf.pdgId()<<endl; //}
+		cout<<"Pt of PF Candidates: "<<pfpt<<endl; 
+		cout<<"All is well: "<<endl;}*/
+//   }
+//}
+//
 
 
 // ------------ method called once each job just before starting event loop  ------------
@@ -549,6 +564,11 @@ MiniAnalyzer::beginJob()
   histContainer_["mt_41b"] = fs->make<TH1F>("mt_41b",    ";Transverse mass [GeV]; Events", 100, 0., 200.);
   histContainer_["mt_42b"] = fs->make<TH1F>("mt_42b",    ";Transverse mass [GeV]; Events", 100, 0., 200.);
 
+  histContainer_["pfpt"]         = fs->make<TH1F>("pfpt",          ";Transverse momentum [GeV];# pfpacked",         100, 0., 300.);
+  histContainer_["pfpx"]         = fs->make<TH1F>("pfpx",          ";X_Component_Transverse momentum [GeV];# pfpacked",         100, 0., 300.);
+  histContainer_["pfpy"]         = fs->make<TH1F>("pfpy",          ";Y_Component_Transverse momentum [GeV];# pfpacked",         100, 0., 300.);
+  histContainer_["pfpz"]         = fs->make<TH1F>("pfpz",          ";Z_Component_Transverse momentum [GeV];# pfpacked",         100, 0., 300.);
+  histContainer_["sum_pt"]         = fs->make<TH1F>("sum_pt",          ";SUM_Transverse momentum [GeV];# pfpacked",         100, 0., 300.);
   //instruct ROOT to compute the uncertainty from the square root of weights
   //http://root.cern.ch/root/html/TH1.html#TH1:Sumw2
 //  for(std::unordered_map<std::string,TH1F*>::iterator it=histContainer_.begin();   it!=histContainer_.end();   it++) it->second->Sumw2();
