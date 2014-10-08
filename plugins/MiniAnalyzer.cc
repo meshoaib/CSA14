@@ -367,6 +367,7 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   std::vector<const pat::Jet *> selectedJets;
   histContainer_["nrecojets"]->Fill(jets->size());
   ev_.nj=0;
+  int njets30(0);
   for (const pat::Jet &j : *jets) {
 	  
     float dR2lepton= selectedMuons.size()==1 ? 
@@ -381,10 +382,58 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	 && (j.chargedMultiplicity() > 0 || fabs(j.eta()) >= 2.4)
 	 && dR2lepton>0.4)
       {
-	if(fabs(j.eta()) < 2.5) histContainer_["jetpt"]->Fill(j.pt());    //N-1 plots
-	if(j.pt() > 30)         histContainer_["jeteta"]->Fill(fabs(j.eta())); 
-	if( fabs(j.eta()) < 2.5 && j.pt() > 30)
+
+	//parton matched to the jet
+	const reco::Candidate *genParton = j.genParton();
+	bool isLightFromW(false),isB(false);
+	if(genParton)
 	  {
+	    isB=(abs(genParton->pdgId())==5);
+	    if(genParton->mother())
+	      isLightFromW=(abs(genParton->mother()->pdgId())==24);
+	  }
+	
+	//loop over jet charged constituents
+	int ncharged(0);
+	TLorentzVector chargedJet(0,0,0,0);
+	float sumptcharged(0);
+	for(size_t ipf=0; ipf<j.numberOfDaughters(); ipf++)
+	  {
+	    const pat::PackedCandidate *pfConst=dynamic_cast<const pat::PackedCandidate *>(j.daughter(ipf));
+	    if(pfConst==0) continue;
+	    if(pfConst->charge()==0 || pfConst->fromPV()==0) continue;
+	    sumptcharged += pfConst->pt();
+	    chargedJet += TLorentzVector(pfConst->px(),pfConst->py(),pfConst->pz(),pfConst->energy());
+	    ncharged++;
+	  }
+
+	//N-1 plots
+	if(fabs(j.eta()) < 2.5)
+	  {
+	    histContainer_["jetpt"]->Fill(j.pt());   
+	    histContainer_["chjetpt"]->Fill(sumptcharged);   
+	    if(isB)
+	      {
+		histContainer_["bjetpt"]->Fill(j.pt());    
+		histContainer_["bchjetpt"]->Fill(sumptcharged);   
+	      }
+	    else if(isLightFromW)
+	      {
+		histContainer_["lightjetpt"]->Fill(j.pt());    
+		histContainer_["lightchjetpt"]->Fill(sumptcharged);   
+	      }
+	    else
+	      {
+		histContainer_["otherjetpt"]->Fill(j.pt());    
+		histContainer_["otherchjetpt"]->Fill(sumptcharged);   
+	      }
+	    
+
+	  }
+	if(sumptcharged>15 /*j.pt() > 30*/)         histContainer_["jeteta"]->Fill(fabs(j.eta())); 
+	if( fabs(j.eta()) < 2.5 && sumptcharged>15 /*j.pt() > 30*/)
+	  {
+	    if(j.pt()>30) njets30++;
 	    selectedJets.push_back( &j );
 	    float csv=j.bDiscriminator("combinedSecondaryVertexBJetTags");
 	    histContainer_["jetcsv"]->Fill(csv);
@@ -405,6 +454,11 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	    ev_.j_pt[ev_.nj]=j.pt();
 	    ev_.j_eta[ev_.nj]=j.eta();
 	    ev_.j_phi[ev_.nj]=j.phi();
+	    ev_.j_chsumpt[ev_.nj]=sumptcharged;
+	    ev_.j_nch[ev_.nj]=ncharged;
+	    ev_.j_chpt[ev_.nj]=chargedJet.Pt();
+	    ev_.j_cheta[ev_.nj]=chargedJet.Eta();
+	    ev_.j_chphi[ev_.nj]=chargedJet.Phi();
 	    ev_.j_csv[ev_.nj]=csv;
 	    ev_.j_vtxmass[ev_.nj]=svtxmass;
 	    ev_.j_vtxNtracks[ev_.nj]=vtxNtracks;
@@ -412,7 +466,6 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	    ev_.j_vtx3DSig[ev_.nj]=vtx3DSig;
 	    ev_.j_puid[ev_.nj]=j.userFloat("pileupJetId:fullDiscriminant");
 	    ev_.j_flav[ev_.nj]=j.partonFlavour();
-	    const reco::Candidate *genParton = j.genParton();
 	    ev_.j_pid[ev_.nj]=genParton ? genParton->pdgId() : 0;
 	    ev_.nj++;
 
@@ -420,6 +473,7 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       }
   }
   histContainer_["nseljets"]->Fill(selectedJets.size());
+  histContainer_["nseljetsfull"]->Fill(njets30);
 
 
   //
@@ -554,16 +608,22 @@ MiniAnalyzer::beginJob()
   histContainer_["nselelectrons"]     = fs->make<TH1F>("nselelectrons",   ";# selected electrons;Events", 5, 0., 5.);
 
   histContainer_["nrecojets"]      = fs->make<TH1F>("nrecojets",   ";#reconstructed jets;Events", 50, 0., 50.);
-  histContainer_["jetpt"]          = fs->make<TH1F>("jetpt",       ";Transverse momentum [GeV];# jets", 100, 0., 300.);
+  for(size_t i=0; i<4; i++)
+    {
+      TString pf(""); if(i==1) pf="b"; if(i==2) pf="light"; if(i==3) pf="other";
+      histContainer_[(pf+"jetpt").Data()]     = fs->make<TH1F>(pf+"jetpt",       ";Transverse momentum [GeV];# jets", 100, 0., 250.);
+      histContainer_[(pf+"chjetpt").Data()]   = fs->make<TH1F>(pf+"chjetpt",     ";Charged transverse momentum [GeV];# jets", 100, 0., 200.);
+    }
   histContainer_["jeteta"]         = fs->make<TH1F>("jeteta",      ";Pseudo-rapidity;# jets", 100, 0., 3.);
   histContainer_["jetcsv"]         = fs->make<TH1F>("jetcsv",      ";Combined secondary vertes;# jets", 100, -1.2, 1.2);
   histContainer_["jetpileupid"]    = fs->make<TH1F>("jetpileupid", ";Pileup jet id;#jets", 100, -1.2, 1.2);
   histContainer_["jetsecvtxmass"]  = fs->make<TH1F>("jetvtxMass", ";Secondary vertex mass [GeV];#jets", 100, 0., 6.);
   histContainer_["jetvtxNtracks"]  = fs->make<TH1F>("jetvtxNtracks", ";Vertex Tracks;#jets", 6, 0., 6.);  
-  histContainer_["jetvtx3DVal"]  = fs->make<TH1F>("jetvtx3DVal", ";vtx3DVal [cm];#jets", 100, -5., 5.);
-  histContainer_["jetvtx3DSig"]  = fs->make<TH1F>("jetvtx3DSig", ";vtx3DSig;#jets", 100, 0., 5.);
+  histContainer_["jetvtx3DVal"]    = fs->make<TH1F>("jetvtx3DVal", ";vtx3DVal [cm];#jets", 100, -5., 5.);
+  histContainer_["jetvtx3DSig"]    = fs->make<TH1F>("jetvtx3DSig", ";vtx3DSig;#jets", 100, 0., 5.);
   histContainer_["nseljets"]       = fs->make<TH1F>("nseljets",    ";#selected jets;Events", 6, 3., 10.);
-  histContainer_["nsvtx"]         = fs->make<TH1F>("nsvtx",    ";# secondary vertices;Events",5, 0., 5.);
+  histContainer_["nseljetsfull"]   = fs->make<TH1F>("nseljetsfull",    ";#selected jets;Events", 6, 3., 10.);
+  histContainer_["nsvtx"]          = fs->make<TH1F>("nsvtx",    ";# secondary vertices;Events",5, 0., 5.);
   
   for(size_t ijet=2; ijet<=4; ijet++)
     for(size_t imet=0; imet<2; imet++)
