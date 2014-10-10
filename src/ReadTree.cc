@@ -98,17 +98,35 @@ void ReadTree(TString filename,TString output)
 
       //select jets
       uint32_t nJets(0), nCSVMtags(0), nSSVMtags(0);
+      bool useChPt(ev.j_chpt);
+//      int minVtx, maxVtx;
+      int Nvertices(ev.nvtx); 	
       std::vector< std::pair<int,std::pair<float,float> > > vlxyz_sig;
+//      std::vector< std::pair<int,std::pair<int,float> > > vlxyz_sig;
       for (int k=0; k<ev.nj;k++)
 	{
 	  //check pt and eta of this jet
 	  float pt  = ev.j_pt[k];
+	  float chPt  = ev.j_chpt[k];
 	  float eta = ev.j_eta[k];
+//	  int Nvertices = ev.nvtx;
 	  float csv = ev.j_csv[k];
 	  float lxyz=ev.j_vtx3DVal[k];
 	  float lxyz_sig= ev.j_vtx3DSig[k];
 
-	  if (pt > 30 && abs(eta) < 2.5)        
+	  if (useChPt) {
+	   if(chPt > 15 && abs(eta) < 2.5 ) 
+ 	   {
+              nJets++;
+              if (csv>0.679) nCSVMtags++;
+              if(lxyz>0) nSSVMtags++;
+              {
+                std::pair<float,float> jetKinematics(lxyz_sig,pt);
+                vlxyz_sig.push_back( std::pair<int,std::pair<float,float> >(k,jetKinematics) );
+              }
+            }
+            else
+	     if (pt > 30 && abs(eta) < 2.5) 
 	    {
 	      nJets++;
 	      if (csv>0.679) nCSVMtags++;
@@ -118,12 +136,14 @@ void ReadTree(TString filename,TString output)
 		vlxyz_sig.push_back( std::pair<int,std::pair<float,float> >(k,jetKinematics) );
 	      }
 	    }
+		}
 	}
 
       std::sort(vlxyz_sig.begin(),vlxyz_sig.end(),sortBySignificance);
 	  
       
       //fill histos for CSVM
+      if(Nvertices >= 15 && Nvertices <= 30) 
       if(nJets>=2)                  cutflow->Fill(1);
       if(nJets>=3)                  cutflow->Fill(2);
       if(nJets>=4)                  cutflow->Fill(3);
@@ -149,13 +169,16 @@ void ReadTree(TString filename,TString output)
       if(nJets>=4 && nSSVMtags ==0) ssvbjetcutflow->Fill(6);
       if(nJets>=4 && nSSVMtags ==1) ssvbjetcutflow->Fill(7);
       if(nJets>=4 && nSSVMtags >=2) ssvbjetcutflow->Fill(8);
-                                                                                                
+
+	else continue;                                                                                                
+
       for(size_t v=0; v<vlxyz_sig.size(); v++) 
 	{
 	  if(v>1) break;
 
 	  int k=vlxyz_sig[v].first;
 	  float pt  = ev.j_pt[k];
+//	  float pt  = ev.j_chpt[k];
 	  float eta = ev.j_eta[k];
 	  float lxyz=ev.j_vtx3DVal[k];
 	  float lxyz_sig= ev.j_vtx3DSig[k];
