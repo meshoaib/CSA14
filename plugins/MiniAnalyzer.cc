@@ -52,7 +52,6 @@
 #include <memory>
 #include <cmath>
 
-
 using namespace edm;
 using namespace std;
 using namespace reco;
@@ -267,44 +266,24 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     bool passVetoPt(el.pt()>20);
     bool passEta(fabs(el.eta()) < 2.5 && (fabs(el.superCluster()->eta()) < 1.4442 || fabs(el.superCluster()->eta()) > 1.5660));
 
-    //use a cut based id
-    bool passVetoId( EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::VETO, el.isEB(), el.pt(), el.eta(),
-                                                  el.deltaEtaSuperClusterTrackAtVtx(), 
-						  el.deltaPhiSuperClusterTrackAtVtx(),
-						  el.sigmaIetaIeta(),
-						  el.hadronicOverEm(),
-						  (1.0/el.ecalEnergy() - el.eSuperClusterOverP()/el.ecalEnergy()),
-						  fabs(el.gsfTrack()->dxy(primVtx.position())),
-						  fabs(el.gsfTrack()->dz(primVtx.position())),
-                                                  0., 0., 0., 
-						  !(el.passConversionVeto()), 
-						  el.gsfTrack()->trackerExpectedHitsInner().numberOfLostHits(),
-						  rho) );
-    bool passTightId( EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::TIGHT, el.isEB(), el.pt(), el.eta(),
-						   el.deltaEtaSuperClusterTrackAtVtx(), 
-						   el.deltaPhiSuperClusterTrackAtVtx(),
-						   el.sigmaIetaIeta(),
-						   el.hadronicOverEm(),
-						   (1.0/el.ecalEnergy() - el.eSuperClusterOverP()/el.ecalEnergy()),
-						   fabs(el.gsfTrack()->dxy(primVtx.position())),
-						   fabs(el.gsfTrack()->dz(primVtx.position())),
-						   0., 0., 0., 
-						   !(el.passConversionVeto()), 
-						   el.gsfTrack()->trackerExpectedHitsInner().numberOfLostHits(),
-						   rho) );
-    
+    // distance to PV
+    float db(fabs(el.gsfTrack()->dxy(primVtx.position())));
+    bool  passDB(db < 0.02);
     //isolation
     float relchIso((el.chargedHadronIso())/el.pt());
     bool passIso( relchIso<0.05 );
     bool passVetoIso( relchIso<0.15 );
+
+    bool passVetoId (el.electronID("mvaTrigV0") > 0.5 );
+
+   // conversion rejection
+   if(el.passConversionVeto() == true
+      && el.electronID("mvaTrigV0") > 0.9 )
+//      && el.gsfTrack()->trackerExpectedHitsInner().numberOfHits() <=0)
     
-    if( el.gsfTrack()->trackerExpectedHitsInner().numberOfHits() <= 0 
-	&& el.dB() < 0.02 
-	&& el.passConversionVeto() == true 
-	)
       {
 	
-	if(passPt && passEta && passTightId)
+	if(passPt && passEta && passDB)
 	  {
 	    histContainer_["electronchreliso"]->Fill(relchIso);
 	    histContainer_["electronchiso"]->Fill(el.chargedHadronIso());
@@ -313,13 +292,13 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	    histContainer_["electronpuchiso"]->Fill(el.puChargedHadronIso());
 	  }
 	
-	if(passTightId && passIso) 
+	if(passIso) 
 	  {
 	    if(passEta) histContainer_["electronpt"]->Fill(el.pt());    //N-1 plot
 	    if(passPt) histContainer_["electroneta"]->Fill(fabs(el.eta()));  //N-1 plot
 	  }
 
-	if(passPt && passEta && passTightId && passIso)
+	if(passPt && passEta && passIso)
 	  {
 	    selectedElectrons.push_back(&el);
 	    leptonpt = el.pt();
@@ -336,7 +315,7 @@ MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	    ev_.l_photonIso=el.photonIso();
 	    ev_.l_puChargedHadronIso=el.puChargedHadronIso();
 	  }
-	else if(passVetoPt && passEta && passVetoId && passVetoIso)
+	else if(passVetoPt && passEta && passVetoIso && passVetoId)
 	  {
 	    vetoElectrons.push_back(&el);
 	  }
