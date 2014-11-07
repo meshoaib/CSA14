@@ -14,7 +14,8 @@ bool sortBySignificance(std::pair<int,std::pair<float,float> > a,
   return (a.second.second>b.second.second);
 }
 
-void ReadTree(TString filename,TString output)
+void ReadTree(TString filename,TString output,
+	      bool useChPt,int minVtx, int maxVtx)
 {
   gROOT->Reset();
 
@@ -26,18 +27,17 @@ void ReadTree(TString filename,TString output)
   cutflow->GetXaxis()->SetBinLabel(5,"#geq 1b-tag");
   cutflow->GetXaxis()->SetBinLabel(6,"#geq 2b-tags");
 
-  TH1F *csvbjetcutflow = new TH1F("csvbjetcutflow",";Cut;Events" ,9,0.,9.);
-  csvbjetcutflow->GetXaxis()->SetBinLabel(1,"2j,=0b");
-  csvbjetcutflow->GetXaxis()->SetBinLabel(2,"2j,=1b");
-  csvbjetcutflow->GetXaxis()->SetBinLabel(3,"2j,#geq2b");
-  csvbjetcutflow->GetXaxis()->SetBinLabel(4,"3j,=0b");
-  csvbjetcutflow->GetXaxis()->SetBinLabel(5,"3j,=1b");
-  csvbjetcutflow->GetXaxis()->SetBinLabel(6,"3j,#geq2b");
-  csvbjetcutflow->GetXaxis()->SetBinLabel(7,"4j,=0b");
-  csvbjetcutflow->GetXaxis()->SetBinLabel(8,"4j,=1b");
-  csvbjetcutflow->GetXaxis()->SetBinLabel(9,"4j,#geq2b");
-  TH1F *ssvbjetcutflow = (TH1F *)csvbjetcutflow->Clone("ssvbjetcutflow");
-
+  TH1F *bjetcutflow = new TH1F("bjetcutflow",";Cut;Events" ,9,0.,9.);
+  bjetcutflow->GetXaxis()->SetBinLabel(1,"2j,=0b");
+  bjetcutflow->GetXaxis()->SetBinLabel(2,"2j,=1b");
+  bjetcutflow->GetXaxis()->SetBinLabel(3,"2j,#geq2b");
+  bjetcutflow->GetXaxis()->SetBinLabel(4,"3j,=0b");
+  bjetcutflow->GetXaxis()->SetBinLabel(5,"3j,=1b");
+  bjetcutflow->GetXaxis()->SetBinLabel(6,"3j,#geq2b");
+  bjetcutflow->GetXaxis()->SetBinLabel(7,"4j,=0b");
+  bjetcutflow->GetXaxis()->SetBinLabel(8,"4j,=1b");
+  bjetcutflow->GetXaxis()->SetBinLabel(9,"4j,#geq2b");
+  
   TH1F *disvtx_2j_leading     = new TH1F("disvtx_2j_leading",";lxy;Events" ,25,0.,10.);
   TH1F *disvtx_2j_nextleading = (TH1F *)disvtx_2j_leading->Clone("disvtx_2j_nextleading");
   TH1F *disvtx_3j_leading     = (TH1F *)disvtx_2j_leading->Clone("disvtx_3j_leading");
@@ -59,7 +59,14 @@ void ReadTree(TString filename,TString output)
   TH1F *vertexmass_4j_leading     = (TH1F *)vertexmass_2j_leading->Clone("vertexmass_4j_leading");
   TH1F *vertexmass_4j_nextleading = (TH1F *)vertexmass_2j_leading->Clone("vertexmass_4j_nextleading");
 
-  TH1F *jetpt_2j_leading     = new TH1F("jetpt_2j_leading",";pt;Events" ,25,0.,300.);
+  TH1F *numvertices_2j_leading     = new TH1F("numvertices_2j_leading",";vertices;Events" ,100,0.,100.);
+  TH1F *numvertices_2j_nextleading     = (TH1F *)numvertices_2j_leading->Clone("numvertices_2j_nextleading");
+  TH1F *numvertices_3j_leading     = (TH1F *)numvertices_2j_leading->Clone("numvertices_3j_leading");
+  TH1F *numvertices_3j_nextleading     = (TH1F *)numvertices_2j_leading->Clone("numvertices_3j_nextleading");
+  TH1F *numvertices_4j_leading     = (TH1F *)numvertices_2j_leading->Clone("numvertices_4j_leading");
+  TH1F *numvertices_4j_nextleading     = (TH1F *)numvertices_2j_leading->Clone("numvertices_4j_nextleading");
+
+  TH1F *jetpt_2j_leading     = new TH1F("jetpt_2j_leading",";pt;Events" ,50,0.,300.);
   TH1F *jetpt_2j_nextleading = (TH1F *)jetpt_2j_leading->Clone("jetpt_2j_nextleading");
   TH1F *jetpt_3j_leading     = (TH1F *)jetpt_2j_leading->Clone("jetpt_3j_leading");
   TH1F *jetpt_3j_nextleading = (TH1F *)jetpt_2j_leading->Clone("jetpt_3j_nextleading");
@@ -97,12 +104,9 @@ void ReadTree(TString filename,TString output)
       t->GetEntry(i);
 
       //select jets
-      uint32_t nJets(0), nCSVMtags(0), nSSVMtags(0);
-      bool useChPt(ev.j_chpt);
-//      int minVtx, maxVtx;
+      uint32_t nJets(0), nBtags(0),nJets30(0) ;
       int Nvertices(ev.nvtx); 	
       std::vector< std::pair<int,std::pair<float,float> > > vlxyz_sig;
-//      std::vector< std::pair<int,std::pair<int,float> > > vlxyz_sig;
       for (int k=0; k<ev.nj;k++)
 	{
 	  //check pt and eta of this jet
@@ -115,138 +119,143 @@ void ReadTree(TString filename,TString output)
 	  float lxyz_sig= ev.j_vtx3DSig[k];
 
 	  if (useChPt) {
-	   if(chPt > 15 && abs(eta) < 2.5 ) 
- 	   {
-              nJets++;
-              if (csv>0.679) nCSVMtags++;
-              if(lxyz>0) nSSVMtags++;
-              {
-                std::pair<float,float> jetKinematics(lxyz_sig,pt);
-                vlxyz_sig.push_back( std::pair<int,std::pair<float,float> >(k,jetKinematics) );
-              }
-            }
-            else
-	     if (pt > 30 && abs(eta) < 2.5) 
-	    {
-	      nJets++;
-	      if (csv>0.679) nCSVMtags++;
-              if(lxyz>0) nSSVMtags++;
+	    if(chPt > 15 && fabs(eta) < 2.5 ) 
 	      {
-		std::pair<float,float> jetKinematics(lxyz_sig,pt);
-		vlxyz_sig.push_back( std::pair<int,std::pair<float,float> >(k,jetKinematics) );
-	      }
-	    }
+		nJets++;
+		if (chPt > 58)
+                 nJets30 ++;
+		if(lxyz>0) 
+		{
+		  nBtags++;
+		  std::pair<float,float> jetKinematics(lxyz_sig,chPt);
+		  vlxyz_sig.push_back( std::pair<int,std::pair<float,float> >(k,jetKinematics) );
 		}
+	      }
+	  }
+	  else
+	    {
+	      if (pt > 30 && fabs(eta) < 2.5) 
+		{
+		  nJets++;
+		nJets30++;	
+		  if (csv>0.679) 
+		    {
+		      nBtags++;
+		      std::pair<float,float> jetKinematics(csv,pt);
+		      vlxyz_sig.push_back( std::pair<int,std::pair<float,float> >(k,jetKinematics) );
+		    }
+		}
+	    }
 	}
 
       std::sort(vlxyz_sig.begin(),vlxyz_sig.end(),sortBySignificance);
 	  
-      
-      //fill histos for CSVM
-      if(Nvertices >= 15 && Nvertices <= 30) 
-      if(nJets>=2)                  cutflow->Fill(1);
-      if(nJets>=3)                  cutflow->Fill(2);
-      if(nJets>=4)                  cutflow->Fill(3);
-      if(nJets>=4 && nCSVMtags >=1) cutflow->Fill(4);
-      if(nJets>=4 && nCSVMtags >=2) cutflow->Fill(5);
-      if(nJets==2 && nCSVMtags ==0) csvbjetcutflow->Fill(0);	
-      if(nJets==2 && nCSVMtags ==1) csvbjetcutflow->Fill(1);	
-      if(nJets==2 && nCSVMtags ==2) csvbjetcutflow->Fill(2);	
-      if(nJets==3 && nCSVMtags ==0) csvbjetcutflow->Fill(3);	
-      if(nJets==3 && nCSVMtags ==1) csvbjetcutflow->Fill(4);	
-      if(nJets==3 && nCSVMtags >=2) csvbjetcutflow->Fill(5);	
-      if(nJets>=4 && nCSVMtags ==0) csvbjetcutflow->Fill(6);
-      if(nJets>=4 && nCSVMtags ==1) csvbjetcutflow->Fill(7);
-      if(nJets>=4 && nCSVMtags >=2) csvbjetcutflow->Fill(8);
-      
-      //fill histos for SSV
-      if(nJets==2 && nSSVMtags ==0) ssvbjetcutflow->Fill(0);
-      if(nJets==2 && nSSVMtags ==1) ssvbjetcutflow->Fill(1);
-      if(nJets==2 && nSSVMtags ==2) ssvbjetcutflow->Fill(2);
-      if(nJets==3 && nSSVMtags ==0) ssvbjetcutflow->Fill(3);
-      if(nJets==3 && nSSVMtags ==1) ssvbjetcutflow->Fill(4);
-      if(nJets==3 && nSSVMtags >=2) ssvbjetcutflow->Fill(5);
-      if(nJets>=4 && nSSVMtags ==0) ssvbjetcutflow->Fill(6);
-      if(nJets>=4 && nSSVMtags ==1) ssvbjetcutflow->Fill(7);
-      if(nJets>=4 && nSSVMtags >=2) ssvbjetcutflow->Fill(8);
 
-	else continue;                                                                                                
-
+      //filter on the number of vertices
+      if(Nvertices < minVtx || Nvertices >= maxVtx) continue;
+      
+      //fill cutflow histos
+      if(nJets>=2 && nJets30>0)               cutflow->Fill(1);
+      if(nJets>=3 && nJets30>0)               cutflow->Fill(2);
+      if(nJets>=4 && nJets30>0)               cutflow->Fill(3);
+      if(nJets>=4 && nJets30>0 && nBtags >=1) cutflow->Fill(4);
+      if(nJets>=4 && nJets30>0 && nBtags >=2) cutflow->Fill(5);
+      if(nJets==2 && nJets30>0 && nBtags ==0) bjetcutflow->Fill(0);	
+      if(nJets==2 && nJets30>0 && nBtags ==1) bjetcutflow->Fill(1);	
+      if(nJets==2 && nJets30>0 && nBtags ==2) bjetcutflow->Fill(2);	
+      if(nJets==3 && nJets30>0 && nBtags ==0) bjetcutflow->Fill(3);	
+      if(nJets==3 && nJets30>0 && nBtags ==1) bjetcutflow->Fill(4);	
+      if(nJets==3 && nJets30>0 && nBtags >=2) bjetcutflow->Fill(5);	
+      if(nJets>=4 && nJets30>0 && nBtags ==0) bjetcutflow->Fill(6);
+      if(nJets>=4 && nJets30>0 && nBtags ==1) bjetcutflow->Fill(7);
+      if(nJets>=4 && nJets30>0 && nBtags >=2) bjetcutflow->Fill(8);
+      
+      //show b-tagging discriminator distributions
       for(size_t v=0; v<vlxyz_sig.size(); v++) 
 	{
 	  if(v>1) break;
 
 	  int k=vlxyz_sig[v].first;
-	  float pt  = ev.j_pt[k];
-//	  float pt  = ev.j_chpt[k];
+	  float pt  = useChPt ?  ev.j_chpt[k] : ev.j_pt[k];
 	  float eta = ev.j_eta[k];
 	  float lxyz=ev.j_vtx3DVal[k];
 	  float lxyz_sig= ev.j_vtx3DSig[k];
 	  float vtxmass = ev.j_vtxmass[k]; 
+	  int numvertex = ev.nvtx;
 
 	  //most significantly displaced vertex
 	  if(v==0) {
-	    if(nJets >=2){
+	    if(nJets ==2 && nJets30>0){
 	      if(lxyz>0){
 		disvtx_2j_leading->Fill(lxyz);
 		lxyz_sig_2j_leading->Fill(lxyz_sig);
 		vertexmass_2j_leading->Fill(vtxmass);
+		numvertices_2j_leading->Fill(numvertex);
 	      }
 	      jetpt_2j_leading->Fill(pt);
-	      jeteta_2j_leading->Fill(fabs(eta));}
-	
-	     if(nJets >=3){
+	      jeteta_2j_leading->Fill(fabs(eta));
+	    }
+	    
+	    if(nJets ==3 && nJets30>0){
               if(lxyz>0){
                 disvtx_3j_leading->Fill(lxyz);
                 lxyz_sig_3j_leading->Fill(lxyz_sig);
                 vertexmass_3j_leading->Fill(vtxmass);
+                numvertices_3j_leading->Fill(numvertex);
               }
               jetpt_3j_leading->Fill(pt);
-              jeteta_3j_leading->Fill(fabs(eta));}
+              jeteta_3j_leading->Fill(fabs(eta));
+	    }
 
-	    if(nJets >=4){
+	    if(nJets >=4 && nJets30>0){
 	      if(lxyz>0){
 		disvtx_4j_leading->Fill(lxyz);
 		lxyz_sig_4j_leading->Fill(lxyz_sig);
 		vertexmass_4j_leading->Fill(vtxmass);
+		numvertices_4j_leading->Fill(numvertex);
 	      }
 	      jetpt_4j_leading->Fill(pt);
-	      jeteta_4j_leading->Fill(fabs(eta));}
+	      jeteta_4j_leading->Fill(fabs(eta));
+	    }
 	  }
-
+	  
 	  //second most significantly displaced vertex
 	  if(v==1) {
-	    if(nJets >=2){
+	    if(nJets ==2 && nJets30>0){
 	      if(lxyz>0){
 		disvtx_2j_nextleading->Fill(lxyz);
 		lxyz_sig_2j_nextleading->Fill(lxyz_sig);
 		vertexmass_2j_nextleading->Fill(vtxmass);
+		numvertices_2j_nextleading->Fill(numvertex);
 	      }
 	      jetpt_2j_nextleading->Fill(pt);
-	      jeteta_2j_nextleading->Fill(fabs(eta));}
+	      jeteta_2j_nextleading->Fill(fabs(eta));
+	    }
 
-	    if(nJets >=3){
+	    if(nJets ==3 && nJets30>0){
               if(lxyz>0){
                 disvtx_3j_nextleading->Fill(lxyz);
                 lxyz_sig_3j_nextleading->Fill(lxyz_sig);
                 vertexmass_3j_nextleading->Fill(vtxmass);
+		numvertices_3j_nextleading->Fill(numvertex);
               }
               jetpt_3j_nextleading->Fill(pt);
-              jeteta_3j_nextleading->Fill(fabs(eta));}
-
-	    if(nJets >=4){
+              jeteta_3j_nextleading->Fill(fabs(eta));
+	    }
+	    
+	    if(nJets >=4 && nJets30>0){
 	      if(lxyz>0){
 		disvtx_4j_nextleading->Fill(lxyz);
 		lxyz_sig_4j_nextleading->Fill(lxyz_sig);
 		vertexmass_4j_nextleading->Fill(vtxmass);
+		numvertices_4j_nextleading->Fill(numvertex);
 	      }
 	      jetpt_4j_nextleading->Fill(pt);
-	      jeteta_4j_nextleading->Fill(fabs(eta));}
+	      jeteta_4j_nextleading->Fill(fabs(eta));
+	    }
 	  }	
 	}
     }
-    
-
     
   
   //close file
@@ -256,42 +265,47 @@ void ReadTree(TString filename,TString output)
   //open output file
   TFile *fOut=TFile::Open(output+"/"+filename,"RECREATE");
   cutflow->Write();
-  csvbjetcutflow->Write();
-  ssvbjetcutflow->Write();
+  bjetcutflow->Write();
 
   disvtx_2j_leading->Write();
   lxyz_sig_2j_leading->Write();
   vertexmass_2j_leading->Write();
+  numvertices_2j_leading->Write();
   jetpt_2j_leading->Write();
   jeteta_2j_leading->Write();
 
   disvtx_3j_leading->Write();
   lxyz_sig_3j_leading->Write();
   vertexmass_3j_leading->Write();
+  numvertices_3j_leading->Write();
   jetpt_3j_leading->Write();
   jeteta_3j_leading->Write();
  
   disvtx_4j_leading->Write();
   lxyz_sig_4j_leading->Write();
   vertexmass_4j_leading->Write();
+  numvertices_4j_leading->Write();
   jetpt_4j_leading->Write();
   jeteta_4j_leading->Write();
 
   disvtx_2j_nextleading->Write();
   lxyz_sig_2j_leading->Write();
   vertexmass_2j_nextleading->Write();
+  numvertices_2j_nextleading->Write();
   jetpt_2j_nextleading->Write();
   jeteta_2j_nextleading->Write();
 
   disvtx_3j_nextleading->Write();
   lxyz_sig_3j_leading->Write();
   vertexmass_3j_nextleading->Write();
+  numvertices_3j_nextleading->Write();
   jetpt_3j_nextleading->Write();
   jeteta_3j_nextleading->Write();
 
   disvtx_4j_nextleading->Write();
   lxyz_sig_4j_nextleading->Write();
   vertexmass_4j_nextleading->Write();
+  numvertices_4j_nextleading->Write();
   jetpt_4j_nextleading->Write();
   jeteta_4j_nextleading->Write();
  
@@ -300,7 +314,7 @@ void ReadTree(TString filename,TString output)
 }
 
 
-void RunOverSamples(TString output)
+void RunOverSamples(TString output, bool useChPt,int minVtx, int maxVtx)
 {
   TString files[]={
     "miniAOD_DY.root",
@@ -317,15 +331,17 @@ void RunOverSamples(TString output)
     "miniAOD_QCD_600_800.root",
     "miniAOD_QCD_800_1000.root",
     "miniAOD_QCD_80_120.root",
+    "miniAOD_TBarToLeptons_s_channel.root",
     "miniAOD_TBarToLeptons_t_channel.root",
     "miniAOD_TToLeptons_s_channel.root",
+    "miniAOD_TToLeptons_t_channel.root",
     "miniAOD_T_tW_channel.root",
     "miniAOD_Tbar_tW_channel.root",
     "miniAOD_wjets.root"
   };
   for(size_t i=0; i<sizeof(files)/sizeof(TString); i++)
     {
-      ReadTree(files[i],output);
+      ReadTree(files[i],output,useChPt,minVtx,maxVtx);
     }
   
 
