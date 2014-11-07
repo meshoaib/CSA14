@@ -122,7 +122,7 @@ void ReadTree(TString filename,TString output,
 	    if(chPt > 15 && fabs(eta) < 2.5 ) 
 	      {
 		nJets++;
-		if (chPt > 58)
+		if (chPt > 30)
                  nJets30 ++;
 		if(lxyz>0) 
 		{
